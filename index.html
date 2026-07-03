@@ -1,0 +1,2541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Sphotoedit — Course Portal</title>
+
+<!--
+  ============================================================================
+  SPHOTOEDIT COURSE PORTAL — SETUP GUIDE (read this before using)
+  ============================================================================
+  This is a single self-contained HTML file. No server, no build step.
+  Upload it anywhere (GitHub Pages, Netlify, your own hosting, even a Google
+  Drive shared link won't work for hosting — use real static hosting) and
+  it will run entirely in the student's browser.
+
+  STEP 1 — Create your Google Sheet
+  ----------------------------------
+  Make one Google Sheet. Share it: "Anyone with the link" → Viewer.
+  Copy the Sheet ID from the URL:
+     https://docs.google.com/spreadsheets/d/  >>>THIS PART<<<  /edit
+  Paste it into CONFIG.SHEET_ID below.
+
+  STEP 2 — Make an "Access" tab (exact name: Access)
+  ----------------------------------
+  Column A = Email, Column B = Courses the student unlocked.
+  Row 1 can be a header ("Email", "Courses") — it's auto-skipped.
+  In Column B, list course IDs separated by space or comma, e.g:
+     riya@gmail.com      PhotoshopBasics
+     arjun@gmail.com      PhotoshopBasics, CanvaEssentials
+  The IDs here must exactly match a course "id" in CONFIG.COURSES below
+  (and match that course's own sheet tab name). # symbols are fine too,
+  e.g. "#PhotoshopBasics" — they're ignored.
+
+  STEP 3 — Make one tab per course
+  ----------------------------------
+  Tab name = the course "id" (e.g. "PhotoshopBasics"), exactly.
+  Cell A1 = the course title shown to students (optional — falls back to
+  the title you set in CONFIG.COURSES if left blank).
+  From row 2 down:
+     Column A = Lecture/Assignment title
+     Column B = YouTube or Google Drive link
+     Column C = (optional) type — write "Assignment", anything else / left
+                blank is treated as "Lecture"
+
+  STEP 4 — List the course on the dashboard
+  ----------------------------------
+  Option A (recommended, no code editing ever again): add a "Courses" tab
+  with columns id | title | description | emoji, one row per course. The
+  page reads this automatically every time someone logs in. The "emoji"
+  column accepts either an emoji character (🎨) or a direct image URL
+  (ending in .png/.jpg etc) — paste a link and it renders as an icon.
+  Option B: add an entry to CONFIG.COURSES below instead. Only used as a
+  fallback if there's no "Courses" tab (or it's empty).
+
+  That's it — open the HTML file, enter an email that's in the Access tab,
+  and the matching course(s) unlock. There's a companion Apps Script that
+  creates course tabs and emails students their link automatically from a
+  menu inside the Sheet — see the setup guide provided alongside this file.
+  ============================================================================
+-->
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+
+  :root{
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Outfit', sans-serif;
+    --blue:#2F38B2;
+    --blue-dark:#232a8a;
+    --white:#FFFFFF;
+    --dark:#323232;
+    --dark-2:#2a2a2a;
+    --yellow:#F5DF4E;
+    --black:#0D0D0D;
+    --muted: rgba(255,255,255,.56);
+    --muted-dim: rgba(255,255,255,.32);
+    --radius-sm:4px;
+    --radius-md:8px;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{ height:100%; }
+
+  body{
+    font-family:var(--font-ui);
+    background:var(--black);
+    color:var(--white);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1, h2, h3, .eyebrow, .course-label, .pill {
+    font-family:var(--font-display);
+  }
+
+  #app{ min-height:100vh; }
+
+  a{ color:inherit; }
+
+  button{ font-family:inherit; cursor:pointer; border:none; }
+
+  input{ font-family:inherit; }
+
+  ::selection{ background:var(--yellow); color:var(--black); }
+
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-track{ background:var(--dark); }
+  ::-webkit-scrollbar-thumb{ background:var(--blue); border-radius:8px; }
+
+  /* ---------- shared layout bits ---------- */
+  .eyebrow{
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--yellow);
+  }
+
+  .accent-bar{
+    width:40px;
+    height:3px;
+    background:var(--blue);
+    margin:14px 0 20px;
+  }
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:var(--yellow);
+    color:var(--black);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:4px 10px;
+    border-radius:4px;
+  }
+  .pill.pill-locked{
+    background: rgba(255, 74, 74, 0.12);
+    color: #FF5A5A;
+    border: 1.5px solid rgba(255, 74, 74, 0.22);
+  }
+
+  .pill.pill-outline{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid rgba(255,255,255,.18);
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    background:var(--blue);
+    color:var(--white);
+    font-weight:600;
+    font-size:14px;
+    padding:13px 26px;
+    border-radius:4px;
+    transition:background .15s ease, transform .1s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{ background:var(--blue-dark); }
+  .btn:active{ transform:scale(.98); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .btn-ghost{
+    background:transparent;
+    border:1.5px solid rgba(255,255,255,.2);
+    color:var(--white);
+  }
+  .btn-ghost:hover{ border-color:var(--yellow); background:transparent; }
+
+  .btn-block{ width:100%; }
+
+  /* dot-grid decorative background, brand-approved low-opacity texture */
+  .dot-grid{
+    position:absolute; inset:0;
+    background-image:radial-gradient(rgba(47,56,178,.35) 1px, transparent 1px);
+    background-size:26px 26px;
+    opacity:.5;
+    pointer-events:none;
+  }
+
+  /* ================= CENTER SCREENS (login / locked / loading / error) ================= */
+  .center-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    position:relative;
+    overflow:hidden;
+  }
+
+  .brand-mark{
+    position:absolute;
+    top:28px; left:28px;
+    display:flex; align-items:center; gap:10px;
+    font-weight:800; letter-spacing:.5px; font-size:15px;
+    z-index:2;
+    cursor:pointer;
+  }
+  .brand-mark .sq{ width:10px; height:10px; background:var(--yellow); border-radius:2px; }
+
+  /* ---------- Immersive Glassmorphic Login Overlay ---------- */
+  .login-overlay-wrap {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(13, 13, 13, 0.45);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+  }
+  .glass-card {
+    background: rgba(28, 28, 36, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+  }
+  .brand-mark-login {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    font-size: 15px;
+    margin-bottom: 20px;
+  }
+  .brand-mark-login .sq {
+    width: 10px;
+    height: 10px;
+    background: var(--yellow);
+    border-radius: 2px;
+  }
+
+  .card{
+    position:relative;
+    z-index:2;
+    width:100%;
+    max-width:420px;
+    background:var(--dark);
+    padding:44px 36px;
+    border-radius:8px;
+  }
+
+  /* corner-frame accent, brand shape system item, yellow 2px corners */
+  .card::before, .card::after,
+  .card .corner-br, .card .corner-tl{
+    content:"";
+    position:absolute;
+    width:22px; height:22px;
+    border-color:var(--yellow);
+    border-style:solid;
+    opacity:.9;
+  }
+  .card::before{ top:-1px; left:-1px; border-width:2px 0 0 2px; }
+  .card::after{ bottom:-1px; right:-1px; border-width:0 2px 2px 0; }
+
+  .card h1{
+    font-size:26px;
+    font-weight:800;
+    line-height:1.2;
+    text-align:left;
+  }
+
+  .card p.sub{
+    color:var(--muted);
+    font-size:14px;
+    margin-top:10px;
+    line-height:1.55;
+    text-align:left;
+  }
+
+  .field{ margin-top:22px; }
+  .field label{
+    display:block;
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .field input{
+    width:100%;
+    background:var(--black);
+    border:1.5px solid rgba(255,255,255,.12);
+    color:var(--white);
+    padding:14px 14px;
+    border-radius:4px;
+    font-size:15px;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  .field input:focus{ border-color:var(--blue); }
+  .field input::placeholder{ color:var(--muted-dim); }
+
+  .form-actions{ margin-top:22px; }
+
+  .form-error{
+    margin-top:14px;
+    font-size:13px;
+    color:#ff9b9b;
+    display:none;
+  }
+  .form-error.show{ display:block; }
+
+  .lock-icon{
+    width:52px; height:52px;
+    border-radius:8px;
+    background:rgba(245,223,78,.12);
+    border:1.5px solid var(--yellow);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:20px;
+    font-size:22px;
+  }
+
+  .spinner{
+    width:34px; height:34px;
+    border-radius:50%;
+    border:3px solid rgba(255,255,255,.15);
+    border-top-color:var(--yellow);
+    animation:spin .8s linear infinite;
+    margin:0 auto 16px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .loading-text{ text-align:center; color:var(--muted); font-size:14px; }
+
+  .contact-box{
+    margin-top:24px;
+    padding:14px 16px;
+    background:rgba(255,255,255,.04);
+    border-left:3px solid var(--blue);
+    border-radius:4px;
+    font-size:13px;
+    color:var(--muted);
+    line-height:1.6;
+  }
+  .contact-box strong{ color:var(--white); }
+
+  /* ================= DASHBOARD ================= */
+  .dash-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:22px 32px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .dash-header .brand-mark{ position:static; }
+  .dash-user{ display:flex; align-items:center; gap:14px; }
+  .dash-user .email-chip{
+    font-size:12px;
+    color:var(--muted);
+    background:rgba(255,255,255,.05);
+    padding:7px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+    user-select: none;
+  }
+  .dash-user .email-chip:hover {
+    color: var(--white);
+    background: rgba(255,255,255,.1);
+  }
+  .link-btn{
+    background:transparent;
+    color:var(--muted);
+    font-size:13px;
+    font-weight:500;
+    text-decoration:underline;
+    text-underline-offset:3px;
+  }
+  .link-btn:hover{ color:var(--yellow); }
+
+  .dash-hero{ padding:44px 32px 8px; max-width:1100px; }
+  .dash-hero h1{ font-size:32px; font-weight:800; text-align:left; }
+  .dash-hero p{ color:var(--muted); margin-top:8px; font-size:14px; max-width:520px; }
+
+  .course-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px,1fr));
+    gap:20px;
+    padding:24px 32px 64px;
+    max-width:1100px;
+  }
+
+  .course-card{
+    background:var(--dark);
+    border-radius:8px;
+    padding:24px;
+    position:relative;
+    overflow:hidden;
+    border:1.5px solid transparent;
+    transition:border-color .15s ease, transform .12s ease;
+  }
+  .course-card.unlocked{
+    cursor:pointer;
+    border-color:rgba(47, 56, 178, 0.15); /* subtle active border to indicate unlocked */
+  }
+  .course-card.unlocked:hover{
+    border-color:var(--blue);
+    transform:translateY(-2px);
+    box-shadow: 0 8px 24px rgba(47, 56, 178, 0.15);
+  }
+  .course-card.locked{
+    opacity:.65;
+    cursor:pointer;
+  }
+  .course-card.locked:hover{
+    border-color:rgba(255, 255, 255, 0.2);
+    opacity:1;
+    transform:translateY(-2px);
+  }
+
+  .course-emoji{
+    width:46px; height:46px;
+    border-radius:8px;
+    background:rgba(47,56,178,.25);
+    display:flex; align-items:center; justify-content:center;
+    font-size:22px;
+    margin-bottom:16px;
+    overflow:hidden;
+  }
+  .course-card.locked .course-emoji{ background:rgba(255,255,255,.06); }
+
+  .course-card h3{ font-size:17px; font-weight:700; text-align:left; margin-bottom:6px; }
+  .course-card p{ font-size:13px; color:var(--muted); line-height:1.5; text-align:left; }
+
+  .course-card .status-row{
+    margin-top:18px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+
+  .lock-badge{
+    font-size:11px; font-weight:600; color:var(--muted);
+    display:flex; align-items:center; gap:5px;
+  }
+
+  .progress-track{
+    height:4px; background:rgba(255,255,255,.08); border-radius:4px; margin-top:14px; overflow:hidden;
+  }
+  .progress-fill{ height:100%; background:var(--yellow); border-radius:4px; }
+
+  /* ================= PLAYER ================= */
+  .player-wrap{ display:flex; min-height:100vh; }
+
+  .sidebar{
+    width:340px;
+    flex-shrink:0;
+    background:var(--dark);
+    border-right:1px solid rgba(255,255,255,.08);
+    display:flex;
+    flex-direction:column;
+    max-height:100vh;
+    position:sticky;
+    top:0;
+  }
+
+  .sidebar-head{
+    padding:22px 20px 16px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .sidebar-head .back-link{
+    font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; margin-bottom:14px;
+  }
+  .sidebar-head .back-link:hover{ color:var(--yellow); }
+  .sidebar-head h2{ font-size:16px; font-weight:700; text-align:left; line-height:1.3; }
+  .sidebar-head .layers-label{
+    font-size:10px; font-weight:700; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-top:12px;
+  }
+
+  .layer-list{ overflow-y:auto; flex:1; padding:8px 0; }
+
+  .layer-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 14px;
+    margin: 4px 12px;
+    border-radius: 6px;
+    cursor:pointer;
+    transition: all 0.2s ease;
+    border:1px solid transparent;
+  }
+  .layer-row:hover{ background:rgba(255,255,255,.04); }
+  .layer-row.active{ border-color:rgba(47,56,178,.3); background:rgba(47,56,178,.12); }
+
+  .layer-badge{
+    flex-shrink:0;
+    width:22px; height:22px;
+    border-radius:4px;
+    background:rgba(255,255,255,.05);
+    color:var(--muted);
+    border:1px solid rgba(255,255,255,.08);
+    font-size:10px;
+    font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    transition: all 0.15s ease;
+  }
+  .layer-row.active .layer-badge{ background:var(--blue); color:var(--white); border-color:var(--blue); }
+  .layer-row.watched .layer-badge{ background:rgba(255,221,0,.08); color:var(--yellow); border-color:rgba(255,221,0,.2); }
+
+  .layer-info{ flex:1; min-width:0; }
+  .layer-title{ font-size:13px; font-weight:500; line-height:1.4; color:rgba(255,255,255,0.7); }
+  .layer-row.active .layer-title{ color:var(--white); font-weight:600; }
+  .layer-meta{ margin-top:4px; display:flex; align-items:center; gap:8px; }
+  .type-tag{
+    font-size:9px; font-weight:600; letter-spacing:.5px; text-transform:uppercase;
+    color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.05); padding:2px 6px; border-radius:3px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+  .type-tag.assignment{ background:rgba(255,221,0,0.05); border:1px solid rgba(255,221,0,0.2); color:var(--yellow); }
+  .watched-check{ font-size:11px; color:var(--yellow); }
+
+  .player-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  .player-topbar{
+    display:none;
+    align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .hamburger{
+    background:transparent; color:var(--white); font-size:20px; padding:4px 8px;
+  }
+
+  .player-body{ padding:36px 44px 60px; max-width:1200px; width:100%; margin:0 auto; }
+
+  .video-shell{
+    width:100%;
+    aspect-ratio:16/9;
+    background:#000;
+    border-radius:12px;
+    overflow:hidden;
+    position:relative;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(47, 56, 178, 0.2);
+  }
+  .video-shell iframe{ width:100%; height:100%; border:0; }
+
+  .lecture-heading{ margin-top:28px; }
+  .lecture-heading h1{ font-size:24px; font-weight:800; text-align:left; }
+  .lecture-heading .meta-row{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .lecture-heading .position{ font-size:13px; color:var(--muted); }
+
+  .nav-buttons{ display:flex; gap:12px; margin-top:32px; }
+
+  .empty-state{
+    padding:60px 20px; text-align:center; color:var(--muted); max-width:480px; margin:0 auto;
+  }
+
+  /* mobile drawer overlay */
+  .drawer-overlay{
+    display:none;
+    position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:40;
+  }
+  .drawer-overlay.show{ display:block; }
+
+  @media (max-width: 860px){
+    .sidebar{
+      position:fixed; top:0; left:0; height:100vh; z-index:50;
+      transform:translateX(-100%);
+      transition:transform .2s ease;
+      width:82%; max-width:340px;
+    }
+    .sidebar.open{ transform:translateX(0); }
+    .player-topbar{ display:flex; }
+    .player-body{ padding:22px 18px 50px; }
+    .dash-hero{ padding:32px 20px 4px; }
+    .course-grid{ padding:18px 20px 50px; }
+    .dash-header{ padding:18px 20px; }
+    .meta-row-wrap { margin-top: 16px; }
+  }
+
+  /* New video player layout styling and elements */
+  .meta-row-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 24px;
+    margin-bottom: 8px;
+  }
+  .meta-row-wrap .nav-buttons {
+    margin-top: 0;
+  }
+  .lecture-heading { margin-top: 16px; }
+  .btn-nav {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  .lecture-details-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .lecture-desc-section h3 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--yellow);
+    margin-bottom: 10px;
+  }
+  .lecture-desc {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .lecture-desc a {
+    color: var(--yellow);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s ease;
+  }
+  .lecture-desc a:hover {
+    color: #ebd235;
+  }
+  .btn-assets {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 221, 0, 0.08);
+    border: 1.5px solid rgba(255, 221, 0, 0.25);
+    color: var(--yellow);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    width: fit-content;
+    box-shadow: 0 4px 12px rgba(255, 221, 0, 0.05);
+  }
+  .btn-assets:hover {
+    background: var(--yellow);
+    color: var(--dark);
+    border-color: var(--yellow);
+    transform: translateY(-1.5px);
+    box-shadow: 0 8px 20px rgba(255, 221, 0, 0.25);
+  }
+  .btn-assets:active {
+    transform: translateY(0);
+  }
+
+  /* Brand mark wrap for flex header alignment */
+  .brand-mark-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+  .brand-mark-wrap-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+  }
+  .contact-support {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .contact-support a {
+    color: var(--yellow);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+  .contact-support a:hover {
+    color: #ebd235;
+  }
+
+  /* Notifications bell & dropdown */
+  .notif-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+  .notif-bell-btn {
+    background: transparent;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 50%;
+    transition: background 0.2s ease, color 0.2s ease;
+    position: relative;
+  }
+  .notif-bell-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--white);
+  }
+  .notif-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #ff4747;
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    box-shadow: 0 0 10px rgba(255, 71, 71, 0.5);
+  }
+  .notif-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 320px;
+    background: var(--dark-2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 100;
+    display: none;
+  }
+  .notif-dropdown.show {
+    display: block;
+    animation: fadeInNotif 0.2s ease;
+  }
+  @keyframes fadeInNotif {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .notif-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--white);
+  }
+  .notif-clear-btn {
+    background: transparent;
+    color: var(--yellow);
+    font-size: 11px;
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .notif-clear-btn:hover {
+    color: #ebd235;
+  }
+  .notif-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  .notif-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-left: 3px solid transparent;
+    transition: background 0.2s ease, border-left-color 0.2s ease;
+  }
+  .notif-item:last-child {
+    border-bottom: none;
+  }
+  .notif-item.clickable {
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .notif-item.clickable:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-left-color: var(--yellow);
+  }
+  .notif-item.warning {
+    background: rgba(255, 221, 0, 0.08) !important;
+    border-left-color: var(--yellow) !important;
+  }
+  .notif-item.warning .notif-text {
+    color: #fff6c7 !important;
+  }
+  .notif-text {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  .notif-text a {
+    color: var(--yellow);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .notif-text a:hover {
+    color: #ebd235;
+  }
+  .enroll-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .enroll-nav-btn:hover {
+    background: var(--blue-dark);
+  }
+
+  /* ---------- Enroll Modal ---------- */
+  .enroll-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .enroll-modal-overlay.open {
+    display: flex;
+    opacity: 1;
+  }
+  .enroll-modal-content {
+    background: #0D0D0D;
+    width: 92%;
+    max-width: 540px;
+    height: 90vh;
+    max-height: 720px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: transform 0.25s ease;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+  }
+  .enroll-modal-overlay.open .enroll-modal-content {
+    transform: translateY(0);
+  }
+  .enroll-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 28px;
+    font-weight: 300;
+    cursor: pointer;
+    z-index: 2005;
+    line-height: 1;
+    transition: color 0.15s ease;
+  }
+  .enroll-modal-close:hover {
+    color: var(--yellow);
+  }
+  .enroll-modal-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+  }
+
+  /* ================= MODERN GLASS REDESIGN ================= */
+  :root{
+    --blue:#6C7CFF;
+    --blue-dark:#5160E8;
+    --blue-soft:rgba(108,124,255,.18);
+    --cyan:#52E0FF;
+    --pink:#FF6FB1;
+    --white:#FFFFFF;
+    --dark:#11131C;
+    --dark-2:#171A26;
+    --yellow:#FFE66D;
+    --black:#070910;
+    --muted:rgba(238,242,255,.68);
+    --muted-dim:rgba(238,242,255,.42);
+    --border:rgba(255,255,255,.14);
+    --glass:rgba(17,20,31,.72);
+    --glass-strong:rgba(21,25,38,.86);
+    --shadow:0 24px 80px rgba(0,0,0,.42);
+    --radius-sm:8px;
+    --radius-md:14px;
+  }
+
+  body{
+    background:
+      radial-gradient(circle at 12% 8%, rgba(108,124,255,.12), transparent 34%),
+      radial-gradient(circle at 88% 4%, rgba(82,224,255,.10), transparent 30%),
+      linear-gradient(135deg, #05060a 0%, #0c0e15 46%, #05060a 100%);
+    background-attachment:fixed;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background:
+      linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:linear-gradient(to bottom, rgba(0,0,0,.85), transparent 82%);
+  }
+
+  ::-webkit-scrollbar-track{ background:rgba(255,255,255,.04); }
+  ::-webkit-scrollbar-thumb{
+    background:linear-gradient(180deg, var(--blue), var(--cyan));
+    border-radius:999px;
+  }
+
+  .eyebrow{
+    color:var(--yellow);
+    letter-spacing:1.5px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+  }
+  .eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--yellow);
+    border-radius: 50%;
+  }
+  .eyebrow::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    margin-left: 12px;
+    max-width: 400px;
+  }
+
+  .accent-bar{
+    background:linear-gradient(90deg, var(--cyan), var(--pink));
+    border-radius:999px;
+  }
+
+  .pill{
+    min-height:26px;
+    border-radius:999px;
+    background:var(--yellow);
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    box-shadow:none;
+    display: inline-flex;
+    align-items: center;
+    text-transform: uppercase;
+  }
+
+  .pill.pill-locked{
+    background:transparent;
+    color:rgba(255,255,255,0.4);
+    border:1px solid rgba(255,255,255,0.1);
+  }
+
+  .pill.pill-outline{
+    background:rgba(255,255,255,.06);
+    border-color:var(--border);
+  }
+
+  .btn{
+    border-radius:999px;
+    background:linear-gradient(135deg, var(--blue), var(--blue-dark));
+    box-shadow:0 6px 16px rgba(0,0,0,.3);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease, color .18s ease;
+  }
+  .btn:hover{
+    background:linear-gradient(135deg, #7D8AFF, #5A68F0);
+    transform:translateY(-1px);
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .btn:active{ transform:translateY(0) scale(.98); }
+
+  .btn-ghost{
+    background:rgba(255,255,255,.06);
+    border:1px solid var(--border);
+    box-shadow:none;
+  }
+  .btn-ghost:hover{
+    background:rgba(255,255,255,.10);
+    border-color:rgba(255,255,255,.28);
+    color:var(--white);
+  }
+
+  .dot-grid{
+    background:
+      radial-gradient(rgba(255,255,255,.18) 1px, transparent 1px),
+      radial-gradient(circle at 30% 20%, rgba(108,124,255,.28), transparent 36%),
+      radial-gradient(circle at 72% 76%, rgba(82,224,255,.14), transparent 34%);
+    background-size:28px 28px, auto, auto;
+    opacity:1;
+  }
+
+  .brand-mark,
+  .brand-mark-login{
+    color:#F8FAFF;
+    letter-spacing:.8px;
+  }
+  .brand-mark .sq,
+  .brand-mark-login .sq{
+    width:12px;
+    height:12px;
+    border-radius:4px;
+    background:linear-gradient(135deg, var(--yellow), var(--cyan));
+    box-shadow:0 0 18px rgba(82,224,255,.36);
+  }
+
+  .card{
+    max-width:460px;
+    background:var(--glass-strong);
+    border:1px solid var(--border);
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    backdrop-filter:blur(22px) saturate(150%);
+    -webkit-backdrop-filter:blur(22px) saturate(150%);
+  }
+  .card::before,
+  .card::after,
+  .card .corner-br,
+  .card .corner-tl{ display:none; }
+
+  .glass-card{
+    background:rgba(13,16,27,.78) !important;
+    border:1px solid rgba(255,255,255,.18) !important;
+    box-shadow:0 28px 90px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  }
+
+  .card h1{
+    font-size:clamp(25px, 4vw, 34px);
+    letter-spacing:0;
+  }
+
+  .field label{ color:rgba(238,242,255,.62); }
+  .field input{
+    min-height:52px;
+    background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.14);
+    border-radius:14px;
+    transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  .field input:hover{ background:rgba(255,255,255,.09); }
+  .field input:focus{
+    border-color:rgba(82,224,255,.7);
+    box-shadow:0 0 0 4px rgba(82,224,255,.12);
+  }
+
+  .lock-icon{
+    border-radius:16px;
+    background:linear-gradient(135deg, rgba(255,230,109,.16), rgba(108,124,255,.14));
+    border-color:rgba(255,230,109,.34);
+  }
+
+  .contact-box{
+    background:rgba(255,255,255,.07);
+    border:1px solid var(--border);
+    border-left:3px solid var(--cyan);
+    border-radius:14px;
+  }
+
+  .dash-header{
+    position:sticky;
+    top:0;
+    z-index:30;
+    margin:18px auto 0;
+    width:min(1160px, calc(100% - 32px));
+    border: none;
+    border-radius:999px;
+    background:rgba(10,13,23,.85);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 8px 32px rgba(0,0,0,0.4);
+    backdrop-filter:blur(24px) saturate(150%);
+    -webkit-backdrop-filter:blur(24px) saturate(150%);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .dash-user{
+    gap: 16px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .dash-user .email-chip,
+  .notif-bell-btn,
+  .enroll-nav-btn{
+    min-height:38px;
+    border:1px solid var(--border);
+    background:rgba(255,255,255,.07);
+    border-radius:999px;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease, color .18s ease;
+  }
+
+  .dash-user .email-chip:hover,
+  .notif-bell-btn:hover,
+  .enroll-nav-btn:hover{
+    background:rgba(255,255,255,.12);
+    border-color:rgba(255,255,255,.26);
+    transform:translateY(-1px);
+  }
+
+  .enroll-nav-btn{
+    background:transparent !important;
+    border: 1px solid rgba(245, 223, 78, 0.4) !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+  }
+  .enroll-nav-btn:hover{
+    background:rgba(245, 223, 78, 0.05) !important;
+    border-color: rgba(245, 223, 78, 0.8) !important;
+  }
+  .enroll-nav-btn svg { stroke: var(--yellow) !important; }
+
+  .link-btn{
+    text-decoration:none;
+    border-radius:999px;
+    padding:8px 10px;
+    transition:background .18s ease, color .18s ease;
+  }
+  .link-btn:hover{
+    background:rgba(255,255,255,.08);
+    color:var(--cyan);
+  }
+
+  .dash-hero{
+    max-width:1160px;
+    margin:0 auto;
+    padding:72px 22px 24px;
+  }
+  .dash-hero h1{
+    font-size:clamp(34px, 5vw, 58px);
+    line-height:1.02;
+    letter-spacing:0;
+    max-width:760px;
+  }
+  .dash-hero p{
+    color:rgba(238,242,255,.72);
+    font-size:15px;
+    max-width:620px;
+  }
+
+  .course-grid{
+    max-width:1160px;
+    margin:0 auto;
+    padding:26px 22px 76px;
+    display: grid;
+    gap: 24px;
+    grid-template-columns:repeat(auto-fill, minmax(320px,1fr));
+  }
+
+  .course-card{
+    min-height:260px;
+    display:flex;
+    flex-direction:column;
+    background: #11131c;
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:16px;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1), border-color .3s ease, box-shadow .3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .course-card::before{
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 3px;
+    background: linear-gradient(180deg, rgba(82,224,255,0.8), transparent 80%);
+    opacity: 0.3;
+  }
+  .course-card.unlocked{ border-color:rgba(255,255,255,.1); }
+  .course-card.unlocked:hover {
+    border-color:rgba(255,255,255,.2);
+    transform:translateY(-4px) scale(1.02);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+  }
+  .course-card.locked{
+    opacity:.55;
+    background:#0D0E12;
+  }
+  .course-card.locked:hover{ opacity:.8; }
+  .course-card.locked::before{ display: none; }
+  .course-card.locked .course-emoji {
+    filter: grayscale(100%) opacity(50%);
+  }
+
+  .course-emoji-wrap {
+    width: 100%;
+    aspect-ratio: 400 / 180;
+    height: auto;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .course-emoji{
+    width: 100%;
+    height: 100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:48px;
+    margin: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+  
+  .course-text-wrap {
+    padding: 20px 24px;
+    flex: 1;
+  }
+  .course-label {
+    font-size: 10px;
+    color: var(--yellow);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+    opacity: 0.9;
+  }
+  .course-line {
+    width: 24px;
+    height: 1px;
+    background: var(--yellow);
+    margin: 12px 0;
+    opacity: 0.5;
+  }
+
+  .course-card h3{
+    font-size:18px;
+    margin:0;
+    color: var(--white);
+    font-weight: 700;
+  }
+  .course-card p{
+    color:rgba(255,255,255,.5);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .course-card .status-row {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .notif-dropdown{
+    background:#141826;
+    border-color:var(--border);
+    border-radius:18px;
+    box-shadow:0 24px 70px rgba(0,0,0,.6);
+    backdrop-filter:blur(24px) saturate(160%);
+    -webkit-backdrop-filter:blur(24px) saturate(160%);
+  }
+  .notif-header{
+    background:#141826;
+    border-radius:18px 18px 0 0;
+  }
+  .notif-item{
+    background:#141826;
+  }
+  .notif-list{
+    background:#141826;
+    border-radius:0 0 18px 18px;
+  }
+  .notif-item.clickable:hover{
+    background:rgba(82,224,255,.07);
+    border-left-color:var(--cyan);
+  }
+
+  .player-wrap{
+    background:
+      radial-gradient(circle at 78% 10%, rgba(82,224,255,.12), transparent 32%),
+      radial-gradient(circle at 35% 92%, rgba(108,124,255,.14), transparent 30%);
+  }
+
+  .sidebar{
+    width:360px;
+    background:rgba(10,13,23,.82);
+    border-right:1px solid var(--border);
+    box-shadow:18px 0 70px rgba(0,0,0,.18);
+    backdrop-filter:blur(20px) saturate(150%);
+    -webkit-backdrop-filter:blur(20px) saturate(150%);
+  }
+
+  .sidebar-head{
+    padding:26px 22px 18px;
+    border-bottom:1px solid var(--border);
+  }
+  .sidebar-head .back-link{
+    width:max-content;
+    border-radius:999px;
+    padding:8px 10px;
+    background:rgba(255,255,255,.06);
+    transition:background .18s ease, color .18s ease, transform .18s ease;
+  }
+  .sidebar-head .back-link:hover{
+    background:rgba(255,255,255,.10);
+    color:var(--cyan);
+    transform:translateX(-2px);
+  }
+
+  .layer-list{ padding:12px 0; }
+  .layer-row{
+    min-height:66px;
+    margin:6px 14px;
+    padding:12px 14px;
+    border-radius:16px;
+    background:rgba(255,255,255,.035);
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .layer-row:hover{
+    background:rgba(255,255,255,.08);
+    transform:translateX(3px);
+  }
+  .layer-row.active{
+    background:linear-gradient(135deg, rgba(108,124,255,.22), rgba(82,224,255,.09));
+    border-color:rgba(82,224,255,.30);
+  }
+  .layer-badge{
+    width:30px;
+    height:30px;
+    border-radius:10px;
+    background:rgba(255,255,255,.08);
+  }
+  .layer-row.active .layer-badge{
+    background:linear-gradient(135deg, var(--blue), var(--cyan));
+  }
+
+  .type-tag{
+    border-radius:999px;
+    padding:4px 8px;
+    background:rgba(255,255,255,.07);
+    border-color:var(--border);
+  }
+  .type-tag.assignment{
+    background:rgba(255,230,109,.10);
+    border-color:rgba(255,230,109,.28);
+  }
+
+  .player-topbar{
+    background:rgba(10,13,23,.78);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
+
+  .hamburger{
+    width:42px;
+    height:42px;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid var(--border);
+  }
+
+  .player-body{
+    padding:42px 46px 68px;
+  }
+
+  .video-shell{
+    border-radius:24px;
+    border:1px solid rgba(255,255,255,.16);
+    box-shadow:0 28px 90px rgba(0,0,0,.50), 0 0 70px rgba(108,124,255,.18);
+  }
+
+  .lecture-heading h1{
+    font-size:clamp(24px, 3vw, 38px);
+    line-height:1.16;
+  }
+
+  .nav-buttons{
+    flex-wrap:wrap;
+  }
+  .btn-nav{
+    min-height:40px;
+  }
+
+  .lecture-details-card{
+    background:rgba(255,255,255,.07);
+    border:1px solid var(--border);
+    border-radius:22px;
+    box-shadow:0 18px 54px rgba(0,0,0,.18);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
+  .lecture-desc-section h3{ color:var(--cyan); }
+
+  .btn-assets{
+    border-radius:999px;
+    background:rgba(255,230,109,.10);
+    border-color:rgba(255,230,109,.28);
+    box-shadow:none;
+  }
+  .btn-assets:hover{
+    background:linear-gradient(135deg, var(--yellow), #fff7aa);
+    box-shadow:0 16px 36px rgba(255,230,109,.20);
+  }
+
+  .enroll-modal-overlay{
+    background:rgba(5,7,12,.76);
+    backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+  }
+  .enroll-modal-content{
+    background:rgba(12,15,25,.94);
+    border:1px solid var(--border);
+    border-radius:24px;
+    box-shadow:0 32px 100px rgba(0,0,0,.58);
+  }
+  .enroll-modal-close{
+    width:38px;
+    height:38px;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .enroll-modal-close:hover{
+    background:rgba(255,255,255,.13);
+    color:var(--cyan);
+  }
+
+  @media (max-width: 860px){
+    .dash-header{
+      width:calc(100% - 24px);
+      margin-top:12px;
+      padding:16px;
+      border-radius:18px;
+    }
+    .dash-user{
+      width:100%;
+      justify-content:flex-start;
+    }
+    .dash-hero{
+      padding:38px 18px 4px;
+    }
+    .course-grid{
+      padding:18px 14px 56px;
+      grid-template-columns:1fr;
+    }
+    .course-card{
+      min-height:220px;
+    }
+    .player-body{
+      padding:22px 16px 54px;
+    }
+    .video-shell{
+      border-radius:18px;
+    }
+    .meta-row-wrap{
+      align-items:flex-start;
+    }
+    .nav-buttons,
+    .nav-buttons .btn{
+      width:100%;
+    }
+    .login-overlay-wrap{
+      padding:18px;
+    }
+    .card{
+      padding:34px 24px;
+      border-radius:20px;
+    }
+    .notif-dropdown{
+      right:auto;
+      left:0;
+      width:min(320px, calc(100vw - 32px));
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<div id="enrollModal" class="enroll-modal-overlay" onclick="closeEnrollModal(event)">
+  <div class="enroll-modal-content" onclick="event.stopPropagation()">
+    <button class="enroll-modal-close" onclick="closeEnrollModal(event)">&times;</button>
+    <iframe id="enrollIframe" class="enroll-modal-iframe" src="about:blank"></iframe>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   CONFIG — edit this section for your own courses / sheet
+   ========================================================================= */
+const CONFIG = {
+  // To keep the Google Sheet ID hidden from inspection, we store it base64-encoded.
+  // Paste your base64 encoded sheet ID here (encode it at https://www.base64encode.org/)
+  SHEET_ID_B64: "MVJ0TURjMmswdW1OWF92MHZZcWtIQXFwQlRNTGMyX0NkNzJIVmNUTzl3eVU=",
+  ACCESS_SHEET: "Access",
+  BRAND_NAME: "Sphotoedit",
+  CONTACT_HANDLE: "@sphotoedit",
+  CONTACT_URL: "https://instagram.com/sphotoedit/",
+
+  // One entry per course. "id" MUST exactly match:
+  //   1) the tab name of that course's own sheet
+  //   2) the id typed into the Access tab's "Courses" column for buyers
+  COURSES: [
+    { id: "PhotoshopBasics", title: "Photoshop Basics", description: "Core tools, layers, selections and retouching from zero.", emoji: "🎨" },
+    { id: "CanvaEssentials", title: "Canva Essentials", description: "Fast, clean social & thumbnail design with Canva.", emoji: "🧩" }
+  ]
+};
+
+/* ============================================================================
+   STATE
+   ========================================================================= */
+const state = {
+  screen: "login",      // login | verifying | locked | dashboard | player | error
+  email: null,
+  unlockedIds: [],       // course ids this email can open
+  courseList: [],        // resolved course list (from sheet, or CONFIG fallback)
+  errorMessage: "",
+  notifications: [],     // loaded notifications from sheet
+  unreadCount: 0,        // unread notifications count
+  current: {
+    courseId: null,
+    courseTitle: "",
+    lectures: [],         // [{title, url, type, embed}]
+    index: 0
+  }
+};
+window.state = state;
+
+const STORAGE_KEY = "sphotoedit_portal_email";
+const progressKey = (email) => "sphotoedit_progress_" + btoa(unescape(encodeURIComponent(email || "")));
+
+/* ============================================================================
+   UTIL
+   ========================================================================= */
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+function maskEmail(email) {
+  if (!email) return "";
+  const parts = email.split("@");
+  if (parts.length !== 2) return email;
+  const username = parts[0];
+  const domain = parts[1];
+  if (username.length <= 2) {
+    return username[0] + "***@" + domain;
+  }
+  return username[0] + "***" + username[username.length - 1] + "@" + domain;
+}
+
+function formatDescription(desc) {
+  if (!desc) return "";
+  let escaped = escapeHtml(desc);
+  escaped = escaped.replace(/\n/g, "<br>");
+  const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+  return escaped.replace(urlRegex, (url) => {
+    const cleanUrl = url
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`;
+  });
+}
+
+function normalizeTag(t){
+  return String(t || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+}
+
+function safeLocalStorage(){
+  try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); return true; }
+  catch(e){ return false; }
+}
+const HAS_STORAGE = safeLocalStorage();
+
+function getProgress(email, courseId){
+  if(!HAS_STORAGE) return [];
+  try{
+    const raw = localStorage.getItem(progressKey(email));
+    const all = raw ? JSON.parse(raw) : {};
+    return all[courseId] || [];
+  }catch(e){ return []; }
+}
+function markWatched(email, courseId, index){
+  if(!HAS_STORAGE) return;
+  try{
+    const raw = localStorage.getItem(progressKey(email));
+    const all = raw ? JSON.parse(raw) : {};
+    const arr = new Set(all[courseId] || []);
+    arr.add(index);
+    all[courseId] = Array.from(arr);
+    localStorage.setItem(progressKey(email), JSON.stringify(all));
+  }catch(e){ /* ignore */ }
+}
+
+function parseVideoUrl(url){
+  url = String(url || "").trim();
+  url = url.replace(/[\u200B-\u200D\uFEFF]/g, ""); // strip invisible chars from copy-paste
+
+  let m = url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([a-zA-Z0-9_-]{6,})/i);
+  if(m) return { type:"youtube", embed:`https://www.youtube-nocookie.com/embed/${m[1]}`, original:url };
+
+  if(/youtube\.com/i.test(url)){
+    m = url.match(/[?&]v=([a-zA-Z0-9_-]{6,})/i);
+    if(m) return { type:"youtube", embed:`https://www.youtube-nocookie.com/embed/${m[1]}`, original:url };
+  }
+
+  m = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if(m) return { type:"drive", embed:`https://drive.google.com/file/d/${m[1]}/preview`, original:url };
+  m = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if(m) return { type:"drive", embed:`https://drive.google.com/file/d/${m[1]}/preview`, original:url };
+  m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m && url.includes("drive.google.com")) return { type:"drive", embed:`https://drive.google.com/file/d/${m[1]}/preview`, original:url };
+
+  return { type:"other", embed:url, original:url };
+}
+
+/* ============================================================================
+   GOOGLE SHEET FETCH (gviz — works on any "Anyone with link: Viewer" sheet)
+   ========================================================================= */
+let __jsonpCounter = 0;
+function fetchSheetRows(sheetName){
+  return new Promise((resolve, reject) => {
+    if(!CONFIG.SHEET_ID_B64 || CONFIG.SHEET_ID_B64.includes("PASTE_YOUR")){
+      reject(new Error("NOT_READY"));
+      return;
+    }
+    const sheetId = atob(CONFIG.SHEET_ID_B64);
+    const cbName = "__portalCB" + (__jsonpCounter++) + "_" + Date.now();
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("UNREACHABLE"));
+    }, 12000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      try{ delete window[cbName]; }catch(e){}
+      if(script && script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function(json){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      try{
+        if(!json || json.status === "error" || !json.table){ reject(new Error("NOT_FOUND")); return; }
+        const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? (c.v ?? "") : "")));
+        resolve(rows);
+      }catch(e){ reject(new Error("UNREACHABLE")); }
+    };
+
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:${cbName}&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`;
+    const script = document.createElement("script");
+    script.src = url;
+    script.onerror = function(){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("UNREACHABLE"));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+/* ============================================================================
+   DATA LOGIC
+   ========================================================================= */
+async function fetchNotifications(){
+  const defaultWarning = {
+    id: "default_security_warning",
+    message: "⚠️ Sharing your login email may permanently disable your course access.",
+    link: ""
+  };
+  try {
+    const rows = await fetchSheetRows("Notification");
+    if(!rows.length) return [defaultWarning];
+    let dataRows = rows;
+    if(String(rows[0][0] || "").trim().toLowerCase() === "message" || String(rows[0][0] || "").trim().toLowerCase() === "text"){
+      dataRows = rows.slice(1);
+    }
+    const list = dataRows
+      .filter(r => String(r[0] || "").trim() !== "")
+      .map((r, index) => {
+        const message = String(r[0] || "").trim();
+        const link = String(r[1] || "").trim();
+        const id = String(r[2] || "").trim() || `notif_${index}_${btoa(unescape(encodeURIComponent(message))).substring(0, 10)}`;
+        return { id, message, link };
+      });
+    const latest = list.reverse().slice(0, 2);
+    return [defaultWarning, ...latest];
+  } catch(e) {
+    return [defaultWarning];
+  }
+}
+
+function calculateUnreadNotifications(){
+  if (!HAS_STORAGE) {
+    state.unreadCount = state.notifications.length;
+    return;
+  }
+  try {
+    const readIds = JSON.parse(localStorage.getItem("sphotoedit_read_notifs") || "[]");
+    const unread = state.notifications.filter(n => !readIds.includes(n.id));
+    state.unreadCount = unread.length;
+  } catch(e) {
+    state.unreadCount = state.notifications.length;
+  }
+}
+
+function markNotificationsAsRead(){
+  if (!HAS_STORAGE) {
+    state.unreadCount = 0;
+    return;
+  }
+  try {
+    const readIds = state.notifications.map(n => n.id);
+    localStorage.setItem("sphotoedit_read_notifs", JSON.stringify(readIds));
+    state.unreadCount = 0;
+  } catch(e) {}
+}
+
+function toggleNotifications(event){
+  event.stopPropagation();
+  const dropdown = event.currentTarget.nextElementSibling;
+  const isShowing = dropdown.classList.contains("show");
+  
+  document.querySelectorAll(".notif-dropdown").forEach(d => {
+    if (d !== dropdown) d.classList.remove("show");
+  });
+  
+  if(!isShowing){
+    dropdown.classList.add("show");
+    markNotificationsAsRead();
+    const badges = document.querySelectorAll(".notif-badge");
+    badges.forEach(b => b.remove());
+  } else {
+    dropdown.classList.remove("show");
+  }
+}
+
+function clearNotifBadge(event){
+  event.stopPropagation();
+  markNotificationsAsRead();
+  const badges = document.querySelectorAll(".notif-badge");
+  badges.forEach(b => b.remove());
+  document.querySelectorAll(".notif-dropdown").forEach(d => d.classList.remove("show"));
+}
+
+window.toggleNotifications = toggleNotifications;
+window.clearNotifBadge = clearNotifBadge;
+
+function openEnrollModal(courseId) {
+  const modal = document.getElementById('enrollModal');
+  const iframe = document.getElementById('enrollIframe');
+  let url = 'course order.html';
+  if (courseId) {
+    url += '?course=' + encodeURIComponent(courseId);
+  }
+  iframe.src = url;
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEnrollModal(event) {
+  const modal = document.getElementById('enrollModal');
+  const iframe = document.getElementById('enrollIframe');
+  modal.classList.remove('open');
+  iframe.src = 'about:blank';
+  document.body.style.overflow = '';
+}
+
+window.openEnrollModal = openEnrollModal;
+window.closeEnrollModal = closeEnrollModal;
+
+// Click outside dropdown to close it
+window.addEventListener("click", (e) => {
+  if (!e.target.closest(".notif-wrapper")) {
+    document.querySelectorAll(".notif-dropdown").forEach(d => d.classList.remove("show"));
+  }
+});
+
+async function verifyEmail(email){
+  const rows = await fetchSheetRows(CONFIG.ACCESS_SHEET);
+  const wanted = email.trim().toLowerCase();
+  let dataRows = rows;
+  if(rows.length && !String(rows[0][0] || "").includes("@")){
+    dataRows = rows.slice(1); // skip header row
+  }
+  for(const row of dataRows){
+    const rowEmail = String(row[0] || "").trim().toLowerCase();
+    if(rowEmail === wanted){
+      const tagsRaw = String(row[1] || "");
+      const tags = tagsRaw.split(/[\s,]+/).map(normalizeTag).filter(Boolean);
+      return tags;
+    }
+  }
+  return null; // not found
+}
+
+async function fetchCourseList(){
+  // Optional "Courses" tab: id | title | description | emoji
+  // Lets you add new courses to the dashboard without ever editing this file.
+  try{
+    const rows = await fetchSheetRows("Courses");
+    if(!rows.length) return null;
+    let dataRows = rows;
+    if(String(rows[0][0] || "").trim().toLowerCase() === "id"){
+      dataRows = rows.slice(1);
+    }
+    const list = dataRows
+      .filter(r => String(r[0] || "").trim() !== "")
+      .map(r => ({
+        id: String(r[0] || "").trim(),
+        title: String(r[1] || "").trim() || String(r[0] || "").trim(),
+        description: String(r[2] || "").trim(),
+        emoji: String(r[3] || "").trim() || "📘"
+      }));
+    return list.length ? list : null;
+  }catch(e){
+    return null; // sheet missing / empty → caller falls back to CONFIG.COURSES
+  }
+}
+
+async function loadCourse(courseId){
+  const rows = await fetchSheetRows(courseId);
+  if(!rows.length) return { title:null, lectures:[] };
+
+  let title = null;
+  let dataRows = rows;
+  const firstRow = rows[0];
+  const firstColB = String(firstRow[1] || "").trim();
+  if(firstColB === "" && String(firstRow[0] || "").trim() !== ""){
+    title = String(firstRow[0]).trim();
+    dataRows = rows.slice(1);
+  }
+
+  const lectures = dataRows
+    .filter(r => {
+      const a = String(r[0] || "").trim().toLowerCase();
+      return a !== "lecture title" && a !== "title" && a !== "lecture";
+    })
+    .filter(r => String(r[0] || "").trim() !== "" || String(r[1] || "").trim() !== "")
+    .map(r => {
+      const lecTitle = String(r[0] || "").trim();
+      const url = String(r[1] || "").trim();
+      const typeRaw = String(r[2] || "").trim().toLowerCase();
+      const type = typeRaw.includes("assign") ? "assignment" : "lecture";
+      const parsed = parseVideoUrl(url);
+      const description = String(r[3] || "").trim();
+      const assetsUrl = String(r[4] || "").trim();
+      return { 
+        title: lecTitle, 
+        url, 
+        type, 
+        embed: parsed.embed, 
+        original: parsed.original,
+        description,
+        assetsUrl
+      };
+    })
+    .filter(l => l.url);
+
+  return { title, lectures };
+}
+
+/* ============================================================================
+   RENDER — LOGIN
+   ========================================================================= */
+function renderLogin(){
+  const app = document.getElementById("app");
+  
+  // Generate preview course cards in locked states to show in the blurred background
+  let list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
+  list = list.filter(c => !String(c.id || "").trim().startsWith("/") && !String(c.title || "").trim().startsWith("/"));
+  const previewCards = list.map(c => `
+    <div class="course-card locked">
+      <div class="course-emoji">${renderCourseIcon(c.emoji)}</div>
+      <h3>${escapeHtml(c.title)}</h3>
+      <p>${escapeHtml(c.description || "")}</p>
+      <div class="status-row">
+        <span class="pill pill-locked">🔒 Locked</span>
+      </div>
+    </div>
+  `).join("");
+
+  app.innerHTML = `
+    <!-- Faded & Blurred Preview Background of Study Portal -->
+    <div class="dash-header" style="filter:blur(3px); opacity:0.25; pointer-events:none;">
+      <div class="brand-mark-wrap">
+        <div class="brand-mark"><span class="sq"></span>${escapeHtml(CONFIG.BRAND_NAME).toUpperCase()}</div>
+        <div class="contact-support">Facing errors? DM <a href="${CONFIG.CONTACT_URL}" target="_blank" rel="noopener noreferrer">${CONFIG.CONTACT_HANDLE}</a></div>
+      </div>
+      <div class="dash-user"></div>
+    </div>
+    <div class="dash-hero" style="filter:blur(3px); opacity:0.25; pointer-events:none; max-width:1100px; margin:0 auto;">
+      <div class="eyebrow">Your Courses</div>
+
+      <p>Locked courses will open automatically once your payment is confirmed.</p>
+    </div>
+    <div class="course-grid" style="filter:blur(3px); opacity:0.25; pointer-events:none; max-width:1100px; margin:0 auto; padding-bottom:50px;">
+      ${previewCards}
+    </div>
+    
+    <!-- Floating Glassmorphic Login Overlay -->
+    <div class="login-overlay-wrap">
+      <div class="card glass-card">
+        <!-- Close button to browse directly -->
+        <button class="enroll-modal-close" onclick="dismissLogin()" style="top: 8px; right: 12px; font-size: 24px;">&times;</button>
+
+        <h1>Welcome to Sphotoedit</h1>
+        <p class="sub" style="margin-bottom:20px;">Log in to access your courses or browse our catalog.</p>
+        
+        <!-- Form Options (Email Input & Continue Button First) -->
+        <form id="loginForm" onsubmit="return false;">
+          <div class="field" style="margin-bottom:20px;">
+            <label for="emailInput">Email address</label>
+            <div style="display:flex; gap:8px; align-items:stretch;">
+              <input id="emailInput" type="email" placeholder="you@example.com" autocomplete="email" required style="flex:1; margin:0;" />
+              <button type="submit" class="btn btn-ghost" id="loginBtn" style="border:1.5px solid rgba(255,255,255,0.12); color:var(--white); font-weight:500; padding:0 18px;">
+                Continue
+              </button>
+            </div>
+          </div>
+          <div class="form-error" id="loginError" style="margin-bottom:20px;"></div>
+        </form>
+
+        <!-- Divider line -->
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px; opacity:0.4;">
+          <div style="flex:1; height:1px; background:rgba(255,255,255,0.25);"></div>
+          <span style="font-size:9.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted);">OR</span>
+          <div style="flex:1; height:1px; background:rgba(255,255,255,0.25);"></div>
+        </div>
+
+        <!-- Browse Courses First (Primary Bottom Button) -->
+        <button type="button" class="btn btn-block" onclick="dismissLogin()" style="background:var(--yellow); color:var(--dark); font-weight:600;">
+          Browse Courses First
+        </button>
+      </div>
+    </div>
+  `;
+  const form = document.getElementById("loginForm");
+  const emailInput = document.getElementById("emailInput");
+  form.addEventListener("submit", () => handleLoginSubmit(emailInput.value));
+  emailInput.focus();
+}
+
+async function handleLoginSubmit(rawEmail){
+  const email = (rawEmail || "").trim();
+  if(!email || !email.includes("@")){
+    const err = document.getElementById("loginError");
+    err.textContent = "Enter a valid email address.";
+    err.classList.add("show");
+    return;
+  }
+  state.email = email;
+  if(HAS_STORAGE) {
+    try {
+      localStorage.setItem(STORAGE_KEY, email);
+    } catch(e) {}
+  }
+  renderVerifying();
+  try{
+    const tags = await verifyEmail(email);
+    if(tags === null){
+      state.screen = "locked";
+      renderLocked();
+      return;
+    }
+    state.unlockedIds = tags;
+    if(HAS_STORAGE) {
+      try {
+        localStorage.setItem("sphotoedit_unlocked_ids", JSON.stringify(tags));
+      } catch(e) {}
+    }
+    const dynamicList = await fetchCourseList();
+    state.courseList = dynamicList || CONFIG.COURSES;
+    
+    try {
+      state.notifications = await fetchNotifications();
+    } catch(e) {
+      state.notifications = [{
+        id: "default_security_warning",
+        message: "⚠️ Sharing your login email may permanently disable your course access.",
+        link: ""
+      }];
+    }
+    calculateUnreadNotifications();
+
+    if(HAS_STORAGE) localStorage.setItem(STORAGE_KEY, email);
+    state.screen = "dashboard";
+    renderDashboard();
+  }catch(e){
+    renderError(e.message);
+  }
+}
+
+/* ============================================================================
+   RENDER — VERIFYING / LOADING
+   ========================================================================= */
+function renderVerifying(message){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="center-screen">
+      <div class="dot-grid"></div>
+      <div style="position:relative;z-index:2;">
+        <div class="spinner"></div>
+        <div class="loading-text">${escapeHtml(message || "Checking your access…")}</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================================
+   RENDER — LOCKED (email not found)
+   ========================================================================= */
+function renderLocked(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="center-screen">
+      <div class="dot-grid"></div>
+      <div class="brand-mark" onclick="window.location.reload()"><span class="sq"></span>${escapeHtml(CONFIG.BRAND_NAME).toUpperCase()}</div>
+      <div class="card">
+        <div class="lock-icon">🔒</div>
+        <h1>You haven't purchased this course</h1>
+        <p class="sub">Make sure your payment is done and you entered the exact email you used at checkout. Access is usually added within a few hours of payment.</p>
+        <div class="contact-box">
+          Already paid? Message us on Instagram <strong>${escapeHtml(CONFIG.CONTACT_HANDLE)}</strong> with your payment screenshot and we'll unlock it right away.
+        </div>
+        <div class="form-actions" style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+          <button class="btn btn-block" onclick="openEnrollModal()" style="background:var(--blue); color:var(--white);">
+            Explore &amp; Buy Courses
+          </button>
+          <button class="btn btn-ghost btn-block" onclick="renderLogin()">Try a different email</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================================
+   RENDER — ERROR (config / network issue)
+   ========================================================================= */
+function renderError(code){
+  let title = "Something went wrong";
+  let msg = "We couldn't load that right now. Please check your connection and try again.";
+  if(code === "NOT_READY"){ title = "Portal not ready"; msg = "This course portal isn't set up yet. Please contact us."; }
+  if(code === "NOT_FOUND"){ title = "Not available right now"; msg = "We couldn't open that course. Please contact us if this keeps happening."; }
+
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="center-screen">
+      <div class="dot-grid"></div>
+      <div class="brand-mark" onclick="window.location.reload()"><span class="sq"></span>${escapeHtml(CONFIG.BRAND_NAME).toUpperCase()}</div>
+      <div class="card">
+        <div class="lock-icon">⚠️</div>
+        <h1>${escapeHtml(title)}</h1>
+        <p class="sub">${escapeHtml(msg)}</p>
+        <div class="form-actions">
+          <button class="btn btn-block" onclick="retryFromError()">Try again</button>
+          <div style="height:10px"></div>
+          <button class="btn btn-ghost btn-block" onclick="logout()">Back to email entry</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function retryFromError(){
+  if(state.screen === "player" && state.current.courseId){
+    openCourse(state.current.courseId);
+  }else if(state.email){
+    handleLoginSubmit(state.email);
+  }else{
+    renderLogin();
+  }
+}
+
+/* ============================================================================
+   RENDER — DASHBOARD
+   ========================================================================= */
+function renderCourseIcon(emoji){
+  const val = String(emoji || "").trim();
+  if(/^https?:\/\//i.test(val)){
+    return `<img src="${escapeHtml(val)}" alt="" style="width:100%;height:100%;object-fit:cover;" />`;
+  }
+  return escapeHtml(val || "📘");
+}
+
+function renderDashboard(){
+  const app = document.getElementById("app");
+  let list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
+
+  // Filter out courses that are under construction (id or title starts with "/")
+  list = list.filter(c => {
+    const id = String(c.id || "").trim();
+    const title = String(c.title || "").trim();
+    return !id.startsWith("/") && !title.startsWith("/");
+  });
+
+  // Sort courses so that unlocked (purchased) courses come first
+  list.sort((a, b) => {
+    const aUnlocked = state.unlockedIds.includes(normalizeTag(a.id));
+    const bUnlocked = state.unlockedIds.includes(normalizeTag(b.id));
+    if (aUnlocked && !bUnlocked) return -1;
+    if (!aUnlocked && bUnlocked) return 1;
+    return 0;
+  });
+
+  const cards = list.map(c => {
+    const isUnlocked = state.unlockedIds.includes(normalizeTag(c.id));
+    return `
+      <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" onclick="${isUnlocked ? `openCourse('${escapeHtml(c.id)}')` : `openEnrollModal('${escapeHtml(c.id)}')`}">
+        <div class="course-emoji-wrap">
+          <div class="course-emoji">${renderCourseIcon(c.emoji)}</div>
+        </div>
+        <div class="course-text-wrap">
+          <h3>${escapeHtml(c.title)}</h3>
+          <div class="course-line"></div>
+          <p>${escapeHtml(c.description || "")}</p>
+        </div>
+        <div class="status-row">
+          ${isUnlocked
+            ? `<span class="pill">UNLOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
+            : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;opacity:0.6;padding:0;">Continue →</span>`}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const userHeaderHtml = state.email ? `
+        <!-- Notification Bell Icon -->
+        <div class="notif-wrapper">
+          <button class="notif-bell-btn" onclick="toggleNotifications(event)">
+            <svg class="bell-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            ${state.unreadCount > 0 ? `<span class="notif-badge">${state.unreadCount}</span>` : ""}
+          </button>
+          
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-header">
+              <span>Notifications</span>
+              <button class="notif-clear-btn" onclick="clearNotifBadge(event)">Mark as read</button>
+            </div>
+            <div class="notif-list">
+              ${state.notifications.map(n => {
+                const isWarning = n.message.includes("Warning") || n.message.includes("Security Alert") || n.message.includes("⚠️") || n.message.includes("🔒");
+                const warningClass = isWarning ? " warning" : "";
+                return n.link ? `
+                  <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable${warningClass}">
+                    <div class="notif-text">${formatDescription(n.message)}</div>
+                  </a>
+                ` : `
+                  <div class="notif-item${warningClass}">
+                    <div class="notif-text">${formatDescription(n.message)}</div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </div>
+
+        <span class="email-chip" 
+              title="Hover to reveal full email"
+              onmouseover="this.textContent='${escapeHtml(state.email)}'" 
+              onmouseout="this.textContent='${escapeHtml(maskEmail(state.email))}'">
+          ${escapeHtml(maskEmail(state.email))}
+        </span>
+        <button class="link-btn" onclick="logout()">Log out</button>
+  ` : `
+        <button onclick="showLoginOverlay()" class="link-btn" style="color:var(--yellow); border:1px solid var(--yellow); padding:6px 14px; border-radius:var(--radius-sm); background:none; font-weight:600; cursor:pointer;">
+          Log In
+        </button>
+  `;
+
+  app.innerHTML = `
+    <div class="dash-header">
+      <div class="brand-mark-wrap">
+        <div class="brand-mark" onclick="window.location.reload()"><span class="sq"></span>${escapeHtml(CONFIG.BRAND_NAME).toUpperCase()}</div>
+        <div class="contact-support">Facing errors? DM <a href="${CONFIG.CONTACT_URL}" target="_blank" rel="noopener noreferrer">${CONFIG.CONTACT_HANDLE}</a></div>
+      </div>
+      <div class="dash-user">
+        <button onclick="openEnrollModal()" class="enroll-nav-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><circle cx="12" cy="16" r="1"/></svg>
+          Unlock More
+        </button>
+        ${userHeaderHtml}
+      </div>
+    </div>
+    <div class="dash-hero">
+      <div class="eyebrow">Your Courses</div>
+      <p>Locked courses will open automatically once your payment is confirmed.</p>
+    </div>
+    <div class="course-grid">${cards}</div>
+  `;
+}
+function logout(){
+  if(HAS_STORAGE) {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem("sphotoedit_unlocked_ids");
+  }
+  state.email = null;
+  state.unlockedIds = [];
+  state.notifications = [];
+  state.unreadCount = 0;
+  state.current = { courseId:null, courseTitle:"", lectures:[], index:0 };
+  state.screen = "login";
+  renderLogin();
+}
+
+/* ============================================================================
+   RENDER — PLAYER
+   ========================================================================= */
+async function openCourse(courseId){
+  renderVerifying("Loading your lectures…");
+  try{
+    const { title, lectures } = await loadCourse(courseId);
+    const list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
+    const cfg = list.find(c => c.id === courseId);
+    state.current.courseId = courseId;
+    state.current.courseTitle = title || (cfg ? cfg.title : courseId);
+    state.current.lectures = lectures;
+    state.current.index = 0;
+    state.screen = "player";
+    renderPlayer();
+  }catch(e){
+    renderError(e.message);
+  }
+}
+
+function renderPlayer(){
+  const app = document.getElementById("app");
+  const { lectures, index, courseTitle, courseId } = state.current;
+
+  if(!lectures.length){
+    app.innerHTML = `
+      <div class="player-wrap">
+        <div class="player-main">
+          <div class="player-topbar">
+            <div class="brand-mark-wrap-mobile">
+              <div class="brand-mark" style="position:static;" onclick="window.location.reload()"><span class="sq"></span>${escapeHtml(CONFIG.BRAND_NAME).toUpperCase()}</div>
+              <div class="contact-support">Facing errors? DM <a href="${CONFIG.CONTACT_URL}" target="_blank" rel="noopener noreferrer">${CONFIG.CONTACT_HANDLE}</a></div>
+            </div>
+            
+            <div class="dash-user">
+              <button onclick="openEnrollModal()" class="enroll-nav-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><circle cx="12" cy="16" r="1"/></svg>
+                Unlock More
+              </button>
+              <!-- Notification Bell Icon -->
+              <div class="notif-wrapper">
+                <button class="notif-bell-btn" onclick="toggleNotifications(event)">
+                  <svg class="bell-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                  </svg>
+                  ${state.unreadCount > 0 ? `<span class="notif-badge">${state.unreadCount}</span>` : ""}
+                </button>
+                
+                <div class="notif-dropdown" id="notifDropdownPlayerEmpty">
+                  <div class="notif-header">
+                    <span>Notifications</span>
+                    <button class="notif-clear-btn" onclick="clearNotifBadge(event)">Mark as read</button>
+                  </div>
+                  <div class="notif-list">
+                    ${state.notifications.map(n => n.link ? `
+                      <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable">
+                        <div class="notif-text">${formatDescription(n.message)}</div>
+                      </a>
+                    ` : `
+                      <div class="notif-item">
+                        <div class="notif-text">${formatDescription(n.message)}</div>
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="empty-state">
+            <div class="eyebrow" style="text-align:center;">${escapeHtml(courseTitle)}</div>
+            <h1 style="margin-top:10px;">No lectures added yet</h1>
+            <p style="margin-top:10px;color:var(--muted);">Check back soon — content for this course is being uploaded.</p>
+            <div style="margin-top:24px;"><button class="btn btn-ghost" onclick="renderDashboard()">← Back to dashboard</button></div>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const watched = new Set(getProgress(state.email, courseId));
+  const listHtml = lectures.map((l,i) => `
+    <div class="layer-row ${i===index ? "active":""} ${watched.has(i) ? "watched":""}" onclick="selectLecture(${i})">
+      <div class="layer-badge">${watched.has(i) ? "✓" : i+1}</div>
+      <div class="layer-info">
+        <div class="layer-title">${escapeHtml(l.title || "Untitled")}</div>
+        <div class="layer-meta">
+          <span class="type-tag ${l.type==='assignment' ? 'assignment':''}">${l.type==='assignment' ? 'Assignment' : 'Lecture'}</span>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  const current = lectures[index];
+
+  app.innerHTML = `
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+    <div class="player-wrap">
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-head">
+          <div class="back-link" onclick="renderDashboard()" style="cursor:pointer;">← All courses</div>
+          <h2>${escapeHtml(courseTitle)}</h2>
+          <div class="layers-label">Course Content · ${lectures.length} items</div>
+        </div>
+        <div class="layer-list">${listHtml}</div>
+      </div>
+
+      <div class="player-main">
+        <div class="player-topbar">
+          <button class="hamburger" onclick="openDrawer()">☰</button>
+          <div class="brand-mark-wrap-mobile">
+            <div class="brand-mark" style="position:static;" onclick="window.location.reload()"><span class="sq"></span>${escapeHtml(CONFIG.BRAND_NAME).toUpperCase()}</div>
+            <div class="contact-support">Facing errors? DM <a href="${CONFIG.CONTACT_URL}" target="_blank" rel="noopener noreferrer">${CONFIG.CONTACT_HANDLE}</a></div>
+          </div>
+          
+          <div class="dash-user">
+            <button onclick="openEnrollModal()" class="enroll-nav-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><circle cx="12" cy="16" r="1"/></svg>
+              Unlock More
+            </button>
+            <!-- Notification Bell Icon -->
+            <div class="notif-wrapper">
+              <button class="notif-bell-btn" onclick="toggleNotifications(event)">
+                <svg class="bell-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                ${state.unreadCount > 0 ? `<span class="notif-badge">${state.unreadCount}</span>` : ""}
+              </button>
+              
+              <div class="notif-dropdown" id="notifDropdownPlayer">
+                <div class="notif-header">
+                  <span>Notifications</span>
+                  <button class="notif-clear-btn" onclick="clearNotifBadge(event)">Mark as read</button>
+                </div>
+                <div class="notif-list">
+                  ${state.notifications.map(n => n.link ? `
+                    <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable">
+                      <div class="notif-text">${formatDescription(n.message)}</div>
+                    </a>
+                  ` : `
+                    <div class="notif-item">
+                      <div class="notif-text">${formatDescription(n.message)}</div>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+            
+            <button class="link-btn" onclick="logout()">Log out</button>
+          </div>
+        </div>
+
+        <div class="player-body">
+          <div class="video-shell" id="videoShell">
+            ${current.embed
+              ? `<iframe src="${escapeHtml(current.embed)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`
+              : `<div class="empty-state">No video link found for this item.</div>`}
+          </div>
+          <div class="lecture-heading">
+            <div class="meta-row-wrap">
+              <div class="meta-row">
+                <span class="type-tag ${current.type==='assignment' ? 'assignment':''}">${current.type==='assignment' ? 'Assignment' : 'Lecture'}</span>
+                <span class="position">${index+1} of ${lectures.length}</span>
+              </div>
+              <div class="nav-buttons">
+                <button class="btn btn-ghost btn-nav" ${index===0 ? "disabled":""} onclick="goPrev()">← Previous</button>
+                <button class="btn btn-nav" ${index===lectures.length-1 ? "disabled":""} onclick="goNext()">Next →</button>
+              </div>
+            </div>
+            <h1>${escapeHtml(current.title || "Untitled")}</h1>
+          </div>
+
+          ${(current.description || current.assetsUrl) ? `
+            <div class="lecture-details-card">
+              ${current.description ? `
+                <div class="lecture-desc-section">
+                  <h3>About this lecture</h3>
+                  <div class="lecture-desc">${formatDescription(current.description)}</div>
+                </div>
+              ` : ''}
+              
+              ${current.assetsUrl ? `
+                <div class="lecture-assets-section">
+                  <a href="${escapeHtml(current.assetsUrl)}" target="_blank" rel="noopener noreferrer" class="btn-assets">
+                    <span class="icon">📥</span> Download Assets
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  markWatched(state.email, courseId, index);
+}
+
+function selectLecture(i){
+  state.current.index = i;
+  renderPlayer();
+  closeDrawer();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+function goPrev(){
+  if(state.current.index > 0){ state.current.index--; renderPlayer(); window.scrollTo({top:0,behavior:"smooth"}); }
+}
+function goNext(){
+  if(state.current.index < state.current.lectures.length-1){ state.current.index++; renderPlayer(); window.scrollTo({top:0,behavior:"smooth"}); }
+}
+function openDrawer(){
+  document.getElementById("sidebar").classList.add("open");
+  document.getElementById("drawerOverlay").classList.add("show");
+}
+function closeDrawer(){
+  const sb = document.getElementById("sidebar");
+  const ov = document.getElementById("drawerOverlay");
+  if(sb) sb.classList.remove("open");
+  if(ov) ov.classList.remove("show");
+}
+
+function dismissLogin() {
+  state.screen = "dashboard";
+  renderDashboard();
+}
+
+function showLoginOverlay() {
+  state.screen = "login";
+  renderLogin();
+}
+
+/* expose handlers used via inline on-attributes */
+window.openCourse = openCourse;
+window.selectLecture = selectLecture;
+window.goPrev = goPrev;
+window.goNext = goNext;
+window.openDrawer = openDrawer;
+window.closeDrawer = closeDrawer;
+window.renderDashboard = renderDashboard;
+window.renderLogin = renderLogin;
+window.logout = logout;
+window.dismissLogin = dismissLogin;
+window.showLoginOverlay = showLoginOverlay;
+window.retryFromError = retryFromError;
+
+/* ============================================================================
+   INIT
+   ========================================================================= */
+(async function init(){
+  const savedEmail = HAS_STORAGE ? localStorage.getItem(STORAGE_KEY) : null;
+  const cachedUnlocked = HAS_STORAGE ? localStorage.getItem("sphotoedit_unlocked_ids") : null;
+  if(cachedUnlocked) {
+    try {
+      state.unlockedIds = JSON.parse(cachedUnlocked);
+    } catch(e) {}
+  }
+  
+  // Background load course list to show accurate preview in background if available
+  fetchCourseList().then(list => {
+    if (list) {
+      state.courseList = list;
+      if (state.screen === "login") {
+        renderLogin(); // Refresh preview cards with real sheet data!
+      }
+    }
+  }).catch(() => {});
+
+  if(savedEmail){
+    state.email = savedEmail;
+    handleLoginSubmit(savedEmail);
+  }else{
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>
