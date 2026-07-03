@@ -1801,23 +1801,1017 @@ function clearNotifBadge(event){
 window.toggleNotifications = toggleNotifications;
 window.clearNotifBadge = clearNotifBadge;
 
+
+const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sphotoedit — Course Enrollment</title>
+<meta name="description" content="Enroll in premium photo editing courses from Sphotoedit Academy. Learn professional techniques at your own pace.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blue:#2F38B2;
+    --blue-dark:#242c8c;
+    --blue-glow: rgba(47, 56, 178, 0.35);
+    --white:#FFFFFF;
+    --dark:#141418;
+    --dark-card:#1a1a20;
+    --dark-elevated:#1e1e26;
+    --yellow:#F5DF4E;
+    --yellow-dim: rgba(245, 223, 78, 0.08);
+    --black:#0a0a0c;
+    --muted: rgba(255,255,255,.50);
+    --muted-dim: rgba(255,255,255,.28);
+    --border: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(255, 255, 255, 0.12);
+    --bg: #0a0a0c;
+    --radius-sm:6px;
+    --radius-md:10px;
+    --radius-lg:14px;
+    --shadow-card: 0 4px 24px rgba(0,0,0,0.25);
+    --shadow-glow: 0 0 40px rgba(47, 56, 178, 0.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background:var(--bg);
+    color:var(--white);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 50% 0%, rgba(47,56,178,0.06) 0%, transparent 70%),
+      radial-gradient(circle 800px at 80% 100%, rgba(245,223,78,0.02) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    padding:20px 16px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---------- Header ---------- */
+  .brand-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:28px;
+  }
+  .brand-mark{
+    width:30px;height:30px;
+    background:var(--blue);
+    border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--yellow);font-weight:800;font-size:14px;
+    letter-spacing: -0.5px;
+    box-shadow: 0 2px 8px rgba(47,56,178,0.3);
+  }
+  .brand-name{
+    font-weight:800;font-size:13px;letter-spacing:1.5px;color:rgba(255,255,255,0.85);
+    text-transform: uppercase;
+  }
+
+  .eyebrow{
+    font-size:10px;font-weight:700;letter-spacing:3px;
+    color:var(--yellow);text-transform:uppercase;margin:0 0 6px;
+    opacity: 0.9;
+  }
+  h1{
+    font-size:26px;font-weight:800;line-height:1.15;
+    margin:0 0 6px;color:var(--white);text-align:left;
+    letter-spacing: -0.5px;
+  }
+  .sub{
+    font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.5;
+  }
+  .accent-bar{
+    width:32px;height:3px;
+    background: linear-gradient(90deg, var(--blue) 0%, rgba(47,56,178,0.3) 100%);
+    border-radius: 2px;
+    margin:0 0 24px;
+  }
+
+  /* ---------- Google Form-style Card Containers ---------- */
+  .form-card {
+    background: var(--dark-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+  }
+  .form-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue) 0%, rgba(47,56,178,0.2) 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  /* ---------- Step label ---------- */
+  .step-label{
+    font-size:11px;font-weight:700;letter-spacing:2px;
+    color:var(--muted);text-transform:uppercase;
+    margin:0 0 16px;
+    padding-top: 4px;
+  }
+
+  /* ---------- Course cards ---------- */
+  #courseList{display:flex;flex-direction:column;gap:6px;}
+  .course-card{
+    display:flex;align-items:center;gap:12px;
+    background:rgba(255,255,255,0.015);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:12px 14px;
+    cursor:pointer;
+    transition:all .2s ease;
+    position: relative;
+  }
+  .course-card:hover{
+    border-color: rgba(47,56,178,0.3);
+    background:rgba(255,255,255,0.025);
+  }
+  .course-card.checked{
+    border-color: rgba(47,56,178,0.5);
+    background: rgba(47, 56, 178, 0.08);
+    box-shadow: 0 0 0 1px rgba(47,56,178,0.15) inset, 0 2px 12px rgba(47,56,178,0.08);
+  }
+  .course-check{
+    width:18px;height:18px;flex:0 0 18px;
+    border:2px solid rgba(255,255,255,0.12);
+    border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s ease;
+  }
+  .course-card.checked .course-check{
+    background:var(--blue);border-color:var(--blue);
+    box-shadow: 0 2px 8px rgba(47,56,178,0.3);
+  }
+  .course-check svg{width:10px;height:10px;opacity:0;transition:opacity .15s ease;}
+  .course-card.checked .course-check svg{opacity:1;}
+  .course-body{flex:1;min-width:0;}
+  .course-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .course-title{font-weight:600;font-size:13.5px;color:var(--white);}
+  .course-price{
+    font-weight:700;font-size:13px;color:var(--yellow);white-space:nowrap;
+    background: var(--yellow-dim);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(245,223,78,0.1);
+  }
+  .course-desc{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
+
+  .course-emoji{
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    vertical-align: middle;
+    margin-right: 6px;
+    font-size: 13px;
+  }
+
+  .loading-row, .empty-row{
+    font-size:12px;color:var(--muted);padding:20px 12px;text-align:center;
+  }
+
+  /* ---------- Progress Indicator ---------- */
+  .progress-container {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0 28px;
+    padding: 0 8px;
+  }
+  .progress-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-50%);
+    z-index: 1;
+    border-radius: 1px;
+  }
+  .progress-bar {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 0%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--blue), rgba(47,56,178,0.5));
+    transform: translateY(-50%);
+    z-index: 2;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 1px;
+  }
+  .progress-steps {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    position: relative;
+    z-index: 3;
+  }
+  .step-dot {
+    width: 26px;
+    height: 26px;
+    background: var(--dark-card);
+    border: 2px solid rgba(255, 255, 255, 0.06);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted-dim);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .step-dot.active {
+    border-color: var(--blue);
+    background: var(--blue);
+    color: var(--white);
+    box-shadow: 0 0 16px var(--blue-glow);
+    transform: scale(1.05);
+  }
+  .step-dot.completed {
+    border-color: var(--yellow);
+    background: rgba(245,223,78,0.12);
+    color: var(--yellow);
+    border-width: 2px;
+  }
+
+  /* ---------- Step Panels ---------- */
+  .step-panel {
+    display: none;
+  }
+  .step-panel.active {
+    display: block;
+    animation: slideInPanel 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes slideInPanel {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- Step Navigation Buttons ---------- */
+  .step-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .btn {
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 11px 18px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  .btn-back {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255,255,255,0.6);
+    border: 1px solid var(--border);
+  }
+  .btn-back:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--white);
+  }
+  .btn-next, .btn-submit {
+    background: var(--blue);
+    color: var(--white);
+    flex: 1;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(47,56,178,0.2);
+  }
+  .btn-next:hover, .btn-submit:hover:not(:disabled) {
+    background: var(--blue-dark);
+    box-shadow: 0 4px 20px rgba(47,56,178,0.35);
+    transform: translateY(-1px);
+  }
+  .btn-next:disabled, .btn-submit:disabled {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--muted-dim);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .qr-box{
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .qr-box img{
+    width:140px;height:140px;object-fit:contain;
+    border-radius:var(--radius-md);
+    background:var(--white);
+    margin-bottom:10px;
+    padding: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .qr-pay-amount{font-size:12px;color:var(--muted);}
+  .qr-pay-amount b{color:var(--yellow);font-weight:700;}
+
+  /* ---------- Mobile Direct Pay Button ---------- */
+  .mobile-pay-btn{
+    display:none;
+    width:100%;
+    margin-top:14px;
+    background: linear-gradient(135deg, #25D366 0%, #20ba5a 100%);
+    color:var(--black);
+    border:none;
+    border-radius:var(--radius-sm);
+    font-family:inherit;
+    font-weight:700;
+    font-size:13px;
+    padding:12px;
+    cursor:pointer;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    text-decoration:none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 12px rgba(37,211,102,0.2);
+  }
+  .mobile-pay-btn:hover{
+    background: linear-gradient(135deg, #20ba5a 0%, #1da44d 100%);
+    transform: translateY(-1px);
+  }
+
+  label.field-label{
+    display:block;font-size:10px;font-weight:600;color:var(--muted);
+    margin:16px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  input[type="email"], input[type="text"], input[type="tel"]{
+    width:100%;
+    padding:11px 14px;
+    border:1.5px solid var(--border);
+    border-radius:var(--radius-sm);
+    font-family:inherit;font-size:13.5px;
+    background:var(--black);color:var(--white);
+    outline:none;
+    transition: all .2s ease;
+  }
+  input[type="email"]:focus, input[type="text"]:focus, input[type="tel"]:focus{
+    border-color:var(--blue);
+    box-shadow: 0 0 0 3px rgba(47,56,178,0.1);
+  }
+  input::placeholder {
+    color: var(--muted-dim);
+  }
+
+  .error-msg{
+    font-size:11px;color:#ff6b6b;margin-top:5px;display:none;
+    font-weight: 500;
+  }
+  .error-msg.show{display:block;}
+
+  /* ---------- Success screen ---------- */
+  #successScreen{
+    display:none;text-align:center;
+    padding:48px 16px;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  #successScreen.open{display:block;}
+  .success-icon{
+    width:60px;height:60px;border-radius:50%;
+    background: linear-gradient(135deg, var(--yellow) 0%, #ebd235 100%);
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 20px;
+    box-shadow: 0 4px 20px rgba(245,223,78,0.2);
+  }
+  #successScreen h2{font-size:22px;margin:0 0 8px;color:var(--white);font-weight:800;letter-spacing:-0.3px;}
+  #successScreen p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 6px;}
+  #successScreen .wa{color:var(--yellow);font-weight:600;text-decoration:none;}
+  #successScreen .wa:hover{text-decoration:underline;}
+
+  .highlight-notice {
+    background: var(--yellow-dim);
+    border: 1.5px solid rgba(245,223,78,0.25);
+    padding: 14px 18px;
+    border-radius: var(--radius-md);
+    margin: 20px auto;
+    max-width: 340px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--yellow);
+    font-weight: 600;
+  }
+
+  .back-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--blue);
+    color: var(--white);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 11px 18px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 12px rgba(47,56,178,0.2);
+  }
+  .back-link-btn:hover {
+    background: var(--blue-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(47,56,178,0.3);
+  }
+
+  .upi-copy-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    flex-wrap: wrap;
+    width: 100%;
+  }
+  .upi-copy-row .upi-id {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    word-break: break-all;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .copy-btn {
+    background: var(--blue);
+    border: none;
+    color: var(--white);
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .copy-btn:hover {
+    background: var(--blue-dark);
+  }
+
+  /* ---------- Field Help / Warning ---------- */
+  .field-help {
+    font-size: 11.5px;
+    color: rgba(245,223,78,0.7);
+    margin-top: 6px;
+    line-height: 1.45;
+    font-weight: 500;
+    padding: 8px 10px;
+    background: var(--yellow-dim);
+    border-radius: var(--radius-sm);
+    border-left: 2.5px solid rgba(245,223,78,0.3);
+  }
+
+  .hidden{display:none !important;}
+
+  /* ---------- Smooth scrollbar ---------- */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="mainWrap">
+
+  <div class="brand-row">
+    <div class="brand-mark">S</div>
+    <div class="brand-name">SPHOTOEDIT</div>
+  </div>
+
+  <p class="eyebrow">Course Enrollment</p>
+  <h1>Choose your courses</h1>
+  <p class="sub">Select what you'd like to learn. Your total updates automatically.</p>
+  <div class="accent-bar"></div>
+
+  <!-- Step Progress Indicator -->
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="progress-steps">
+      <div class="step-dot active" data-step="1">1</div>
+      <div class="step-dot" data-step="2">2</div>
+      <div class="step-dot" data-step="3">3</div>
+    </div>
+  </div>
+
+  <!-- Step 1 Panel -->
+  <div class="step-panel active" id="step1Panel">
+    <div class="form-card">
+      <p class="step-label">Step 1 · Your details</p>
+      
+      <label class="field-label" for="nameInput">Full Name</label>
+      <input type="text" id="nameInput" placeholder="" autocomplete="name">
+      <div class="error-msg" id="nameError">Please enter your name.</div>
+
+      <label class="field-label" for="whatsappInput">WhatsApp Number</label>
+      <input type="tel" id="whatsappInput" placeholder="" autocomplete="tel">
+      <div class="error-msg" id="whatsappError">Please enter a valid WhatsApp number.</div>
+
+      <label class="field-label" for="emailInput">Email address</label>
+      <input type="email" id="emailInput" placeholder="" autocomplete="email">
+      <div class="field-help">
+        ⚠️ This email will be used to unlock your course access. Make sure it is correct!
+      </div>
+      <div class="error-msg" id="emailError">Enter a valid email address.</div>
+      
+      <div class="step-actions">
+        <div></div> <!-- Spacer -->
+        <button type="button" class="btn btn-next" onclick="goToStep(2)">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 Panel -->
+  <div class="step-panel" id="step2Panel">
+    <div class="form-card">
+      <p class="step-label">Step 2 · Select courses <span id="selectedCount" style="font-weight:500;text-transform:none;color:var(--muted);font-size:10px;float:right;margin-top:1px;">(0 selected)</span></p>
+      <div id="courseList">
+        <div class="loading-row">Loading courses…</div>
+      </div>
+      
+      <div class="step-actions">
+        <button type="button" class="btn btn-back" onclick="goToStep(1)">← Back</button>
+        <button type="button" class="btn btn-next" id="step2NextBtn" onclick="goToStep(3)" disabled>Select a course</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 Panel -->
+  <div class="step-panel" id="step3Panel">
+    <div class="form-card">
+      <p class="step-label">Step 3 · Scan & pay</p>
+      <div class="qr-box">
+        <img id="qrImage" src="https://i.ibb.co/HDzTmyBJ/QR2.jpg" alt="Payment QR Code">
+        <div class="qr-pay-amount">Pay <b id="qrAmount">₹0</b> via any UPI app</div>
+        
+        <a id="mobilePayBtn" href="#" class="mobile-pay-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          Pay via UPI App
+        </a>
+
+        <div class="upi-copy-row">
+          <span class="upi-id" id="upiId">sandeepdarji.in-2@okhdfcbank</span>
+          <button type="button" class="copy-btn" onclick="copyUpiId()" aria-label="Copy UPI ID">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="copy-icon"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="copyFeedback">Copy UPI ID</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="step-actions" style="margin-top:24px;">
+        <button type="button" class="btn btn-back" onclick="goToStep(2)">← Back</button>
+        <button type="button" class="btn btn-submit" id="ctaBtn" disabled>Complete enrollment</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="successScreen">
+  <div class="success-icon">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2F38B2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+  </div>
+  <h2>Thanks — you're in!</h2>
+
+  <!-- Highlighted Notice -->
+  <div class="highlight-notice">
+    💡 After a few minutes, just refresh the course site to see your course unlocked.
+  </div>
+
+  <p style="margin-bottom: 8px;">We'll verify your payment and unlock course access shortly.</p>
+  <p>Facing errors? DM <a class="wa" href="https://www.instagram.com/sphotoedit/" target="_blank">@sphotoedit</a></p>
+  <div style="margin-top:28px;">
+    <a href="https://sphotoedit.github.io/course" class="back-link-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Back to Course Page
+    </a>
+  </div>
+</div>
+
+
+
+<script>
+/* ======================= CONFIG ======================= */
+// Your Google Sheet ID (base64 encoded for security, from the sheet's URL) and the tab name to read from.
+const SHEET_ID_B64 = "MVJ0TURjMmswdW1OWF92MHZZcWtIQXFwQlRNTGMyX0NkNzJIVmNUTzl3eVU=";
+const SHEET_TAB = "Courses";
+// Column positions on that tab (0 = A, 1 = B, ... 4 = E)
+const COL_ID = 0;     // column A
+const COL_TITLE = 1;  // column B (falls back to ID if blank)
+const COL_DESC = 2;   // column C
+const COL_EMOJI = 3;  // column D
+const COL_PRICE = 4;  // column E
+
+// Only needed if/when you turn on the checkout submission step.
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUB7Y2Naj_UB_WXL7oHPU9uszcylIib7Qdwyw5bejmcfgTmQZPPUX0yVv2MaJ2cET9/exec";
+/* ======================================================= */
+
+let courses = [];
+let selectedIds = new Set();
+let currentStep = 1;
+
+const courseListEl = document.getElementById('courseList');
+const qrAmountEl = document.getElementById('qrAmount');
+const ctaBtn = document.getElementById('ctaBtn');
+const nameInput = document.getElementById('nameInput');
+const nameError = document.getElementById('nameError');
+const whatsappInput = document.getElementById('whatsappInput');
+const whatsappError = document.getElementById('whatsappError');
+const emailInput = document.getElementById('emailInput');
+const emailError = document.getElementById('emailError');
+const mainWrap = document.getElementById('mainWrap');
+const successScreen = document.getElementById('successScreen');
+
+function money(n){ return '₹' + Number(n).toLocaleString('en-IN'); }
+
+function getTotal(){
+  return courses.filter(c => selectedIds.has(c.id)).reduce((s,c) => s + Number(c.price||0), 0);
+}
+
+function renderCourseIcon(emoji){
+  const val = String(emoji || "").trim();
+  if(/^https?:\\/\\//i.test(val)){
+    return \`<img src="\${val}" alt="" style="width:100%;height:100%;object-fit:cover;" />\`;
+  }
+  return val || "📘";
+}
+
+function renderCourses(){
+  if (!courses.length){
+    courseListEl.innerHTML = '<div class="empty-row">No courses available right now.</div>';
+    return;
+  }
+  courseListEl.innerHTML = courses.map(c => {
+    const isChecked = selectedIds.has(c.id);
+    return \`
+      <div class="course-card \${isChecked ? 'checked' : ''}" data-id="\${c.id}">
+        <div class="course-check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F5DF4E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="course-body">
+          <div class="course-title-row">
+            <div class="course-title"><span class="course-emoji">\${renderCourseIcon(c.emoji)}</span>\${c.title}</div>
+            <div class="course-price">\${money(c.price)}</div>
+          </div>
+          <div class="course-desc">\${c.description||''}</div>
+        </div>
+      </div>
+    \`;
+  }).join('');
+
+  courseListEl.querySelectorAll('.course-card').forEach(card => {
+    card.addEventListener('click', () => toggleCourse(card.dataset.id, card));
+  });
+}
+
+function toggleCourse(id, card){
+  if (selectedIds.has(id)){
+    selectedIds.delete(id);
+    card.classList.remove('checked');
+  } else {
+    selectedIds.add(id);
+    card.classList.add('checked');
+  }
+  updateTotal();
+}
+
+function updateTotal(){
+  const total = getTotal();
+  qrAmountEl.textContent = money(total);
+  
+  // Dynamic selected count indicator
+  const countEl = document.getElementById('selectedCount');
+  if(countEl) countEl.textContent = \`(\${selectedIds.size} selected)\`;
+
+  const step2Next = document.getElementById('step2NextBtn');
+
+  if (total > 0){
+    if (step2Next) {
+      step2Next.disabled = false;
+      step2Next.textContent = \`Continue to Pay (\${money(total)}) →\`;
+    }
+    if (ctaBtn) ctaBtn.disabled = false;
+
+    // Dynamic UPI Deeplink for mobile payment
+    const upiLink = "upi://pay?pa=sandeepdarji.in-2@okhdfcbank&pn=Sphotoedit&am=" + total + "&cu=INR";
+    const payBtn = document.getElementById('mobilePayBtn');
+    if (payBtn) payBtn.href = upiLink;
+
+  } else {
+    if (step2Next) {
+      step2Next.disabled = true;
+      step2Next.textContent = 'Select a course';
+    }
+    if (ctaBtn) ctaBtn.disabled = true;
+  }
+}
+
+// Wizard Step Navigation
+function goToStep(step) {
+  if (step > currentStep) {
+    // Validate current step before moving forward
+    if (currentStep === 1) {
+      let valid = true;
+      const name = nameInput.value.trim();
+      const whatsapp = whatsappInput.value.trim();
+      const email = emailInput.value.trim();
+
+      if (!name){ nameError.classList.add('show'); valid = false; } else { nameError.classList.remove('show'); }
+      if (!whatsapp || whatsapp.length < 6){ whatsappError.classList.add('show'); valid = false; } else { whatsappError.classList.remove('show'); }
+
+      const emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email);
+      if (!emailOk){ emailError.classList.add('show'); valid = false; } else { emailError.classList.remove('show'); }
+      
+      if (!valid) return;
+    }
+    if (currentStep === 2) {
+      if (getTotal() <= 0) return;
+    }
+  }
+
+  // Update DOM active step panel
+  document.querySelectorAll('.step-panel').forEach(panel => panel.classList.remove('active'));
+  document.getElementById(\`step\${step}Panel\`).classList.add('active');
+
+  // Update progress indicator dots and bar
+  const dots = document.querySelectorAll('.step-dot');
+  dots.forEach(dot => {
+    const dotStep = parseInt(dot.dataset.step);
+    dot.classList.remove('active', 'completed');
+    if (dotStep === step) {
+      dot.classList.add('active');
+    } else if (dotStep < step) {
+      dot.classList.add('completed');
+    }
+  });
+
+  const progressBar = document.getElementById('progressBar');
+  if (progressBar) {
+    progressBar.style.width = ((step - 1) / 2 * 100) + '%';
+  }
+
+  currentStep = step;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+let __jsonpCounter = 0;
+function fetchSheetRows(sheetName){
+  return new Promise((resolve, reject) => {
+    const sheetId = atob(SHEET_ID_B64);
+    const cbName = "__orderCB" + (__jsonpCounter++) + "_" + Date.now();
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("Timeout loading sheet data"));
+    }, 12000);
+
+    function cleanup(){
+      clearTimeout(timeout);
+      try{ delete window[cbName]; }catch(e){}
+      if(script && script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = function(json){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      try{
+        if(!json || json.status === "error" || !json.table){ reject(new Error("Sheet status error")); return; }
+        const rows = (json.table.rows || []).map(r => (r.c || []).map(c => (c ? (c.v ?? "") : "")));
+        resolve(rows);
+      }catch(e){ reject(new Error("Data parsing error")); }
+    };
+
+    const url = \`https://docs.google.com/spreadsheets/d/\${sheetId}/gviz/tq?tqx=out:json;responseHandler:\${cbName}&sheet=\${encodeURIComponent(sheetName)}&_=\${Date.now()}\`;
+    const script = document.createElement("script");
+    script.src = url;
+    script.onerror = function(){
+      if(settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error("Network connection error"));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function loadCourses(){
+  courseListEl.innerHTML = '<div class="loading-row">Loading courses…</div>';
+  try {
+    const rows = await fetchSheetRows(SHEET_TAB);
+    courses = [];
+
+    // Read already unlocked courses from localStorage so they don't show up in purchase list
+    let unlockedIds = [];
+    try {
+      const stored = localStorage.getItem("sphotoedit_unlocked_ids");
+      if (stored) {
+        unlockedIds = JSON.parse(stored) || [];
+      }
+    } catch(e) {}
+
+    function normalize(t) {
+      return String(t || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    }
+
+    rows.forEach(r => {
+      const idVal = r[COL_ID];
+      if (!idVal) return;                                    // blank row
+      if (String(idVal).trim().toLowerCase() === 'id') return; // stray header row
+      if (String(idVal).trim().indexOf('/') === 0) return;    // "/Name" = hidden draft
+
+      // Skip if course is already unlocked by the user
+      if (unlockedIds.includes(normalize(idVal))) return;
+
+      const titleVal = r[COL_TITLE];
+      const descVal = r[COL_DESC];
+      const emojiVal = r[COL_EMOJI];
+      const priceVal = r[COL_PRICE];
+
+      courses.push({
+        id: idVal,
+        title: titleVal || idVal,
+        description: descVal || '',
+        emoji: emojiVal || '',
+        price: priceVal ? Number(priceVal) || 0 : 0
+      });
+    });
+
+    if (!courses.length){
+      courseListEl.innerHTML = '<div class="empty-row">No courses found in the "' + SHEET_TAB + '" tab.<br><button id="retryBtn" style="margin-top:10px;background:none;border:1px solid #2F38B2;color:#2F38B2;border-radius:4px;padding:6px 14px;font-family:Inter,sans-serif;font-size:12px;cursor:pointer;">Retry</button></div>';
+      document.getElementById('retryBtn').addEventListener('click', loadCourses);
+      return;
+    }
+    renderCourses();
+  } catch (err){
+    console.error('Course load failed:', err);
+    courseListEl.innerHTML = '<div class="empty-row">Could not load courses — ' + (err.message || 'unknown error') +
+      '.<br><button id="retryBtn" style="margin-top:10px;background:none;border:1px solid #2F38B2;color:#2F38B2;border-radius:4px;padding:6px 14px;font-family:Inter,sans-serif;font-size:12px;cursor:pointer;">Retry</button></div>';
+    document.getElementById('retryBtn').addEventListener('click', loadCourses);
+  }
+}
+
+/* ---------- CTA flow: submit ---------- */
+ctaBtn.addEventListener('click', async () => {
+  const total = getTotal();
+  if (total <= 0) return;
+
+  if (APPS_SCRIPT_URL.includes("REPLACE_WITH_YOUR_APPS_SCRIPT")) {
+    alert("Developer Notice: Please replace the APPS_SCRIPT_URL placeholder with your real deployed Google Apps Script Web App URL to test submissions!");
+    return;
+  }
+
+  ctaBtn.disabled = true;
+  ctaBtn.textContent = 'Submitting…';
+
+  const selectedCourses = courses.filter(c => selectedIds.has(c.id))
+    .map(c => ({ id: c.id, title: c.title, price: c.price }));
+
+  const email = emailInput.value.trim();
+
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', // Bypasses browser CORS checks on Google Apps Script redirection response
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
+      body: JSON.stringify({
+        name: nameInput.value.trim(),
+        whatsapp: whatsappInput.value.trim(),
+        email: email,
+        courses: selectedCourses,
+        total: total
+      })
+    });
+
+    // Auto-login: Save the email to localStorage so the course player auto-logs them in
+    try {
+      localStorage.setItem('sphotoedit_email', email);
+    } catch(e) {}
+
+    mainWrap.classList.add('hidden');
+    successScreen.classList.add('open');
+  } catch (err){
+    ctaBtn.disabled = false;
+    ctaBtn.textContent = 'Complete enrollment';
+    alert('Something went wrong submitting your enrollment. Please try again.');
+  }
+});
+
+function copyUpiId() {
+  const upiText = document.getElementById("upiId").textContent;
+  navigator.clipboard.writeText(upiText).then(() => {
+    const feedback = document.getElementById("copyFeedback");
+    feedback.textContent = "Copied!";
+    setTimeout(() => {
+      feedback.textContent = "Copy UPI ID";
+    }, 2000);
+  }).catch(() => {
+    alert("Could not copy automatically. Please copy: " + upiText);
+  });
+}
+
+// Check query param (e.g. ?course=PhotoshopBasics) to pre-select course
+function checkQueryParam() {
+  const params = new URLSearchParams(window.location.search);
+  const courseParam = params.get('course');
+  if (courseParam) {
+    const cleanParam = courseParam.trim().toLowerCase();
+    const found = courses.find(c => c.id.toLowerCase() === cleanParam);
+    if (found) {
+      selectedIds.add(found.id);
+      renderCourses();
+      updateTotal();
+    }
+  }
+}
+
+// Show direct pay button on mobile devices
+function detectMobile() {
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (isMobile) {
+    const payBtn = document.getElementById('mobilePayBtn');
+    if (payBtn) payBtn.style.display = 'inline-flex';
+  }
+}
+
+// Initialize
+(async () => {
+  await loadCourses();
+  checkQueryParam();
+  detectMobile();
+})();
+<\/script>
+</body>
+</html>
+`;
+
 function openEnrollModal(courseId) {
   const modal = document.getElementById('enrollModal');
   const iframe = document.getElementById('enrollIframe');
-  let url = 'course order.html';
+  
+  let docHTML = BUNDLED_ORDER_HTML;
   if (courseId) {
-    url += '?course=' + encodeURIComponent(courseId);
+    docHTML = docHTML.replace(
+      'const params = new URLSearchParams(window.location.search);',
+      'const params = new URLSearchParams("?course=" + encodeURIComponent(courseId));'
+    );
   }
-  iframe.src = url;
+  
+  iframe.removeAttribute('src'); // clear src so srcdoc takes precedence
+  iframe.srcdoc = docHTML;
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 
 function closeEnrollModal(event) {
   const modal = document.getElementById('enrollModal');
   const iframe = document.getElementById('enrollIframe');
   modal.classList.remove('open');
-  iframe.src = 'about:blank';
+  iframe.removeAttribute('srcdoc'); iframe.src = 'about:blank';
   document.body.style.overflow = '';
 }
 
