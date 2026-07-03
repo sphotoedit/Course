@@ -991,9 +991,9 @@
   }
 
   .pill.pill-locked{
-    background:transparent;
-    color:rgba(255,255,255,0.4);
-    border:1px solid rgba(255,255,255,0.1);
+    background:rgba(255,107,107,0.1);
+    color:#ff6b6b;
+    border:1px solid rgba(255,107,107,0.2);
   }
 
   .pill.pill-outline{
@@ -1219,14 +1219,11 @@
     box-shadow: 0 16px 40px rgba(0,0,0,0.6);
   }
   .course-card.locked{
-    opacity:.55;
+    opacity:1;
     background:#0D0E12;
   }
-  .course-card.locked:hover{ opacity:.8; }
+  .course-card.locked:hover{ opacity:1; }
   .course-card.locked::before{ display: none; }
-  .course-card.locked .course-emoji {
-    filter: grayscale(100%) opacity(50%);
-  }
 
   .course-emoji-wrap {
     width: 100%;
@@ -2199,8 +2196,12 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
     padding:48px 16px;
     max-width: 420px;
     margin: 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
   }
-  #successScreen.open{display:block;}
+  #successScreen.open{display:flex;}
   .success-icon{
     width:60px;height:60px;border-radius:50%;
     background: linear-gradient(135deg, var(--yellow) 0%, #ebd235 100%);
@@ -2420,12 +2421,6 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
 
   <p style="margin-bottom: 8px;">We'll verify your payment and unlock course access shortly.</p>
   <p>Facing errors? DM <a class="wa" href="https://www.instagram.com/sphotoedit/" target="_blank">@sphotoedit</a></p>
-  <div style="margin-top:28px;">
-    <a href="https://sphotoedit.github.io/course" class="back-link-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Back to Course Page
-    </a>
-  </div>
 </div>
 
 
@@ -2713,7 +2708,8 @@ ctaBtn.addEventListener('click', async () => {
   const email = emailInput.value.trim();
 
   try {
-    await fetch(APPS_SCRIPT_URL, {
+    // Fire and forget the fetch request so submission is instantaneous
+    fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors', // Bypasses browser CORS checks on Google Apps Script redirection response
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids CORS preflight
@@ -2724,7 +2720,7 @@ ctaBtn.addEventListener('click', async () => {
         courses: selectedCourses,
         total: total
       })
-    });
+    }).catch(e => console.error('Submission error:', e));
 
     // Auto-login: Save the email to localStorage so the course player auto-logs them in
     try {
@@ -2733,6 +2729,7 @@ ctaBtn.addEventListener('click', async () => {
 
     mainWrap.classList.add('hidden');
     successScreen.classList.add('open');
+    window.parent.postMessage({ type: 'ENROLL_SUCCESS', email: email, courses: Array.from(selectedIds) }, '*');
   } catch (err){
     ctaBtn.disabled = false;
     ctaBtn.textContent = 'Complete enrollment';
@@ -2817,6 +2814,37 @@ function closeEnrollModal(event) {
 
 window.openEnrollModal = openEnrollModal;
 window.closeEnrollModal = closeEnrollModal;
+
+window.addEventListener('message', async (e) => {
+  if (e.data && e.data.type === 'ENROLL_SUCCESS') {
+    // We intentionally do NOT close the modal here, so the Thank You screen stays visible.
+    if (e.data.email) {
+      state.email = e.data.email;
+      if (HAS_STORAGE) {
+        try { localStorage.setItem(STORAGE_KEY, state.email); } catch(err){}
+      }
+      
+      const newCourses = e.data.courses || [];
+      const combined = Array.from(new Set([...state.unlockedIds, ...newCourses]));
+      state.unlockedIds = combined;
+      if (HAS_STORAGE) {
+        try { localStorage.setItem("sphotoedit_unlocked_ids", JSON.stringify(combined)); } catch(err){}
+      }
+      
+      if (!state.courseList || !state.courseList.length) {
+         try {
+           const list = await fetchCourseList();
+           state.courseList = list || CONFIG.COURSES;
+         } catch(e) {
+           state.courseList = CONFIG.COURSES;
+         }
+      }
+      
+      state.screen = "dashboard";
+      renderDashboard();
+    }
+  }
+});
 
 // Click outside dropdown to close it
 window.addEventListener("click", (e) => {
