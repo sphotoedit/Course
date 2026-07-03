@@ -2945,17 +2945,30 @@ function renderLogin(){
   
   // Generate preview course cards in locked states to show in the blurred background
   let list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
-  list = list.filter(c => !String(c.id || "").trim().startsWith("/") && !String(c.title || "").trim().startsWith("/"));
-  const previewCards = list.map(c => `
+  list = list.filter(c => {
+    const id = String(c.id || "").trim();
+    const title = String(c.title || "").trim();
+    return !( (id.startsWith("/") && !id.startsWith("//")) || (title.startsWith("/") && !title.startsWith("//")) );
+  });
+  const previewCards = list.map(c => {
+    const isComingSoon = String(c.id || "").trim().startsWith("//") || String(c.title || "").trim().startsWith("//");
+    let displayTitle = escapeHtml(c.title);
+    if (isComingSoon) {
+      displayTitle = displayTitle.replace(/^\/\//, '');
+    }
+    return `
     <div class="course-card locked">
       <div class="course-emoji">${renderCourseIcon(c.emoji)}</div>
-      <h3>${escapeHtml(c.title)}</h3>
+      <h3>${displayTitle}</h3>
       <p>${escapeHtml(c.description || "")}</p>
       <div class="status-row">
-        <span class="pill pill-locked">🔒 Locked</span>
+        ${isComingSoon 
+          ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
+          : `<span class="pill pill-locked">🔒 Locked</span>`
+        }
       </div>
     </div>
-  `).join("");
+  `}).join("");
 
   app.innerHTML = `
     <!-- Faded & Blurred Preview Background of Study Portal -->
@@ -3163,11 +3176,11 @@ function renderDashboard(){
   const app = document.getElementById("app");
   let list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
 
-  // Filter out courses that are under construction (id or title starts with "/")
+  // Filter out courses that are under construction (id or title starts with "/") but keep "//" (coming soon)
   list = list.filter(c => {
     const id = String(c.id || "").trim();
     const title = String(c.title || "").trim();
-    return !id.startsWith("/") && !title.startsWith("/");
+    return !( (id.startsWith("/") && !id.startsWith("//")) || (title.startsWith("/") && !title.startsWith("//")) );
   });
 
   // Sort courses so that unlocked (purchased) courses come first
@@ -3181,20 +3194,28 @@ function renderDashboard(){
 
   const cards = list.map(c => {
     const isUnlocked = state.unlockedIds.includes(normalizeTag(c.id));
+    const isComingSoon = String(c.id || "").trim().startsWith("//") || String(c.title || "").trim().startsWith("//");
+    let displayTitle = escapeHtml(c.title);
+    if (isComingSoon) {
+      displayTitle = displayTitle.replace(/^\/\//, '');
+    }
     return `
-      <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" onclick="${isUnlocked ? `openCourse('${escapeHtml(c.id)}')` : `openEnrollModal('${escapeHtml(c.id)}')`}">
+      <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" onclick="${isComingSoon ? '' : (isUnlocked ? `openCourse('${escapeHtml(c.id)}')` : `openEnrollModal('${escapeHtml(c.id)}')`)}">
         <div class="course-emoji-wrap">
           <div class="course-emoji">${renderCourseIcon(c.emoji)}</div>
         </div>
         <div class="course-text-wrap">
-          <h3>${escapeHtml(c.title)}</h3>
+          <h3>${displayTitle}</h3>
           <div class="course-line"></div>
           <p>${escapeHtml(c.description || "")}</p>
         </div>
         <div class="status-row">
-          ${isUnlocked
+          ${isUnlocked && !isComingSoon
             ? `<span class="pill">UNLOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
-            : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;opacity:0.6;padding:0;">Continue →</span>`}
+            : (isComingSoon 
+                ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
+                : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;opacity:0.6;padding:0;">Continue →</span>`
+              )}
         </div>
       </div>
     `;
