@@ -1795,6 +1795,22 @@ function clearNotifBadge(event){
   document.querySelectorAll(".notif-dropdown").forEach(d => d.classList.remove("show"));
 }
 
+function renderNotificationList() {
+  return state.notifications.map(n => {
+    const isWarning = n.message.includes("Warning") || n.message.includes("Security Alert") || n.message.includes("⚠️") || n.message.includes("🔒");
+    const warningClass = isWarning ? " warning" : "";
+    return n.link ? `
+      <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable${warningClass}">
+        <div class="notif-text">${formatDescription(n.message)}</div>
+      </a>
+    ` : `
+      <div class="notif-item${warningClass}">
+        <div class="notif-text">${formatDescription(n.message)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
 window.toggleNotifications = toggleNotifications;
 window.clearNotifBadge = clearNotifBadge;
 
@@ -2460,7 +2476,14 @@ const successScreen = document.getElementById('successScreen');
 function money(n){ return '₹' + Number(n).toLocaleString('en-IN'); }
 
 function getTotal(){
-  return courses.filter(c => selectedIds.has(c.id)).reduce((s,c) => s + Number(c.price||0), 0);
+  let total = 0;
+  if (selectedIds.has('premium_365')) total += 1000;
+  courses.forEach(c => {
+    if (selectedIds.has(c.id)){
+      total += c.price;
+    }
+  });
+  return total;
 }
 
 function renderCourseIcon(emoji){
@@ -2476,7 +2499,24 @@ function renderCourses(){
     courseListEl.innerHTML = '<div class="empty-row">No courses available right now.</div>';
     return;
   }
-  courseListEl.innerHTML = courses.map(c => {
+  
+  const isPremiumChecked = selectedIds.has('premium_365');
+  const premiumHtml = \`
+      <div class="course-card \${isPremiumChecked ? 'checked' : ''}" data-id="premium_365" style="border: 2px solid #F5DF4E; background: rgba(245, 223, 78, 0.05);">
+        <div class="course-check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#F5DF4E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="course-body">
+          <div class="course-title-row">
+            <div class="course-title" style="color: #F5DF4E;"><span class="course-emoji">🌟</span>365 Days Premium</div>
+            <div class="course-price">₹1,000</div>
+          </div>
+          <div class="course-desc">BEST VALUE: Complete access to all courses and assets for a full year.</div>
+        </div>
+      </div>
+  \`;
+
+  const standardCoursesHtml = courses.map(c => {
     const isChecked = selectedIds.has(c.id);
     return \`
       <div class="course-card \${isChecked ? 'checked' : ''}" data-id="\${c.id}">
@@ -2494,6 +2534,16 @@ function renderCourses(){
     \`;
   }).join('');
 
+  const dividerHtml = \`
+    <div style="display:flex; align-items:center; margin:24px 0 16px;">
+      <div style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></div>
+      <div style="padding:0 12px; font-size:10px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Or pick individual courses</div>
+      <div style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></div>
+    </div>
+  \`;
+
+  courseListEl.innerHTML = premiumHtml + dividerHtml + standardCoursesHtml;
+
   courseListEl.querySelectorAll('.course-card').forEach(card => {
     card.addEventListener('click', () => toggleCourse(card.dataset.id, card));
   });
@@ -2504,6 +2554,16 @@ function toggleCourse(id, card){
     selectedIds.delete(id);
     card.classList.remove('checked');
   } else {
+    if (id === 'premium_365') {
+      selectedIds.clear();
+      document.querySelectorAll('.course-card').forEach(c => c.classList.remove('checked'));
+    } else {
+      if (selectedIds.has('premium_365')) {
+        selectedIds.delete('premium_365');
+        const pCard = document.querySelector('.course-card[data-id="premium_365"]');
+        if (pCard) pCard.classList.remove('checked');
+      }
+    }
     selectedIds.add(id);
     card.classList.add('checked');
   }
@@ -2703,7 +2763,21 @@ ctaBtn.addEventListener('click', async () => {
   ctaBtn.textContent = 'Submitting…';
 
   const selectedCourses = courses.filter(c => selectedIds.has(c.id))
-    .map(c => ({ id: c.id, title: c.title, price: c.price }));
+    .map(c => ({ id: c.id, title: (c.title || "").replace(/\\s+/g, ''), price: c.price }));
+
+  if (selectedIds.has('premium_365')) {
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const enrollDate = \`\${dd}/\${mm}/\${yyyy}\`;
+    
+    selectedCourses.unshift({
+      id: enrollDate,
+      title: enrollDate,
+      price: 1000
+    });
+  }
 
   const email = emailInput.value.trim();
 
@@ -2750,7 +2824,7 @@ function copyUpiId() {
   });
 }
 
-// Check query param (e.g. ?course=PhotoshopBasics) to pre-select course
+// Check query param (e.g. ?course=PhotoshopBasics&email=user@example.com) to pre-select course and email
 function checkQueryParam() {
   const params = new URLSearchParams(window.location.search);
   const courseParam = params.get('course');
@@ -2761,6 +2835,14 @@ function checkQueryParam() {
       selectedIds.add(found.id);
       renderCourses();
       updateTotal();
+    }
+  }
+  
+  const emailParam = params.get('email');
+  if (emailParam) {
+    const emailInput = document.getElementById('emailInput');
+    if (emailInput) {
+      emailInput.value = emailParam;
     }
   }
 }
@@ -2790,10 +2872,18 @@ function openEnrollModal(courseId) {
   const iframe = document.getElementById('enrollIframe');
   
   let docHTML = BUNDLED_ORDER_HTML;
+  let qs = "";
   if (courseId) {
+    qs += (qs ? "&" : "") + "course=" + encodeURIComponent(courseId);
+  }
+  if (typeof state !== 'undefined' && state.email) {
+    qs += (qs ? "&" : "") + "email=" + encodeURIComponent(state.email);
+  }
+  
+  if (qs) {
     docHTML = docHTML.replace(
       'const params = new URLSearchParams(window.location.search);',
-      'const params = new URLSearchParams("?course=" + encodeURIComponent(courseId));'
+      'const params = new URLSearchParams("?' + qs + '");'
     );
   }
   
@@ -2864,8 +2954,76 @@ async function verifyEmail(email){
     const rowEmail = String(row[0] || "").trim().toLowerCase();
     if(rowEmail === wanted){
       const tagsRaw = String(row[1] || "");
-      const tags = tagsRaw.split(/[\s,]+/).map(normalizeTag).filter(Boolean);
-      return tags;
+      let tags = tagsRaw.split(/[\s,]+/).map(normalizeTag).filter(Boolean);
+      const personalNotif = String(row[3] || "").trim(); // Column D is index 3
+      const purchaseDateRaw = String(row[2] || "").trim(); // Column C is index 2
+      
+      let subscriptionInfo = null;
+      let subscriptionActive = false;
+      
+      if (purchaseDateRaw && purchaseDateRaw.length > 2) {
+        subscriptionActive = true; // Assume active initially if they have data in Column C
+        let d = NaN, m = NaN, y = NaN;
+        
+        // Match Date(y,m,d) from GViz
+        const gvizMatch = purchaseDateRaw.match(/Date\((\d+),\s*(\d+),\s*(\d+)/);
+        if (gvizMatch) {
+          y = parseInt(gvizMatch[1], 10);
+          m = parseInt(gvizMatch[2], 10);
+          d = parseInt(gvizMatch[3], 10);
+        } else {
+          // Extract any DD/MM/YYYY or DD-MM-YYYY
+          const textMatch = purchaseDateRaw.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+          if (textMatch) {
+            d = parseInt(textMatch[1], 10);
+            m = parseInt(textMatch[2], 10) - 1;
+            y = parseInt(textMatch[3], 10);
+          } else {
+            // Fallback generic parse
+            const dt = new Date(purchaseDateRaw);
+            if (!isNaN(dt.getTime())) {
+              d = dt.getDate();
+              m = dt.getMonth();
+              y = dt.getFullYear();
+            }
+          }
+        }
+        
+        if (!isNaN(d) && !isNaN(m) && !isNaN(y)) {
+          const purchaseDate = new Date(y, m, d);
+          
+          if (!isNaN(purchaseDate.getTime())) {
+            const msPerDay = 1000 * 60 * 60 * 24;
+            const expiryDate = new Date(purchaseDate.getTime() + 365 * msPerDay);
+            const today = new Date();
+            const daysLeft = Math.ceil((expiryDate - today) / msPerDay);
+            
+            subscriptionActive = daysLeft >= 0;
+            
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const formattedDate = `${String(d).padStart(2, '0')} ${monthNames[m]} ${y}`;
+            
+            subscriptionInfo = {
+              dateString: formattedDate,
+              daysLeft: daysLeft < 0 ? 0 : daysLeft,
+              active: subscriptionActive
+            };
+          }
+        } else {
+          // Could not parse the date correctly, but they have text in Column C.
+          subscriptionInfo = {
+            dateString: purchaseDateRaw,
+            daysLeft: 365, // placeholder
+            active: true
+          };
+        }
+        
+        if (!subscriptionActive) {
+          tags = []; // Revoke access if expired
+        }
+      }
+      
+      return { tags, personalNotif, subscriptionInfo, subscriptionActive };
     }
   }
   return null; // not found
@@ -2952,9 +3110,12 @@ function renderLogin(){
   });
   const previewCards = list.map(c => {
     const isComingSoon = String(c.id || "").trim().startsWith("//") || String(c.title || "").trim().startsWith("//");
+    const isFree = String(c.id || "").trim().startsWith("#") || String(c.title || "").trim().startsWith("#");
     let displayTitle = escapeHtml(c.title);
     if (isComingSoon) {
       displayTitle = displayTitle.replace(/^\/\//, '');
+    } else if (isFree) {
+      displayTitle = displayTitle.replace(/^#/, '');
     }
     return `
     <div class="course-card locked">
@@ -2962,9 +3123,12 @@ function renderLogin(){
       <h3>${displayTitle}</h3>
       <p>${escapeHtml(c.description || "")}</p>
       <div class="status-row">
-        ${isComingSoon 
-          ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
-          : `<span class="pill pill-locked">🔒 Locked</span>`
+        ${isFree 
+          ? `<span class="pill" style="background:#10B981;color:#fff;">FREE</span>` 
+          : (isComingSoon 
+              ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
+              : `<span class="pill pill-locked">🔒 Locked</span>`
+            )
         }
       </div>
     </div>
@@ -3047,16 +3211,17 @@ async function handleLoginSubmit(rawEmail){
   }
   renderVerifying();
   try{
-    const tags = await verifyEmail(email);
-    if(tags === null){
+    const accessData = await verifyEmail(email);
+    if(accessData === null){
       state.screen = "locked";
       renderLocked();
       return;
     }
-    state.unlockedIds = tags;
+    state.unlockedIds = accessData.tags;
+    state.subscriptionActive = accessData.subscriptionActive;
     if(HAS_STORAGE) {
       try {
-        localStorage.setItem("sphotoedit_unlocked_ids", JSON.stringify(tags));
+        localStorage.setItem("sphotoedit_unlocked_ids", JSON.stringify(accessData.tags));
       } catch(e) {}
     }
     const dynamicList = await fetchCourseList();
@@ -3071,6 +3236,25 @@ async function handleLoginSubmit(rawEmail){
         link: ""
       }];
     }
+
+    if (accessData.subscriptionInfo) {
+      const info = accessData.subscriptionInfo;
+      const subMsg = `Purchased on ${info.dateString} · ${info.daysLeft} days left`;
+      state.notifications.unshift({
+        id: "sub_notif_" + Date.now(),
+        message: subMsg,
+        link: ""
+      });
+    }
+
+    if (accessData.personalNotif) {
+      state.notifications.unshift({
+        id: "personal_notif_" + btoa(unescape(encodeURIComponent(accessData.personalNotif))).substring(0, 10),
+        message: accessData.personalNotif,
+        link: ""
+      });
+    }
+
     calculateUnreadNotifications();
 
     if(HAS_STORAGE) localStorage.setItem(STORAGE_KEY, email);
@@ -3183,22 +3367,29 @@ function renderDashboard(){
     return !( (id.startsWith("/") && !id.startsWith("//")) || (title.startsWith("/") && !title.startsWith("//")) );
   });
 
-  // Sort courses so that unlocked (purchased) courses come first
+  // Sort courses so that unlocked (purchased) or free courses come first
   list.sort((a, b) => {
-    const aUnlocked = state.unlockedIds.includes(normalizeTag(a.id));
-    const bUnlocked = state.unlockedIds.includes(normalizeTag(b.id));
+    const aIsFree = String(a.id || "").trim().startsWith("#") || String(a.title || "").trim().startsWith("#");
+    const bIsFree = String(b.id || "").trim().startsWith("#") || String(b.title || "").trim().startsWith("#");
+    const aUnlocked = aIsFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(a.id));
+    const bUnlocked = bIsFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(b.id));
     if (aUnlocked && !bUnlocked) return -1;
     if (!aUnlocked && bUnlocked) return 1;
     return 0;
   });
 
   const cards = list.map(c => {
-    const isUnlocked = state.unlockedIds.includes(normalizeTag(c.id));
+    const isFree = String(c.id || "").trim().startsWith("#") || String(c.title || "").trim().startsWith("#");
+    const isUnlocked = isFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(c.id));
     const isComingSoon = String(c.id || "").trim().startsWith("//") || String(c.title || "").trim().startsWith("//");
+    
     let displayTitle = escapeHtml(c.title);
     if (isComingSoon) {
       displayTitle = displayTitle.replace(/^\/\//, '');
+    } else if (isFree) {
+      displayTitle = displayTitle.replace(/^#/, '');
     }
+    
     return `
       <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" onclick="${isComingSoon ? '' : (isUnlocked ? `openCourse('${escapeHtml(c.id)}')` : `openEnrollModal('${escapeHtml(c.id)}')`)}">
         <div class="course-emoji-wrap">
@@ -3210,11 +3401,14 @@ function renderDashboard(){
           <p>${escapeHtml(c.description || "")}</p>
         </div>
         <div class="status-row">
-          ${isUnlocked && !isComingSoon
-            ? `<span class="pill">UNLOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
-            : (isComingSoon 
-                ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
-                : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;opacity:0.6;padding:0;">Continue →</span>`
+          ${isFree
+            ? `<span class="pill" style="background:#10B981;color:#fff;">FREE</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
+            : (isUnlocked && !isComingSoon
+                ? `<span class="pill">UNLOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
+                : (isComingSoon 
+                    ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
+                    : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;opacity:0.6;padding:0;">Continue →</span>`
+                  )
               )}
         </div>
       </div>
@@ -3238,19 +3432,7 @@ function renderDashboard(){
               <button class="notif-clear-btn" onclick="clearNotifBadge(event)">Mark as read</button>
             </div>
             <div class="notif-list">
-              ${state.notifications.map(n => {
-                const isWarning = n.message.includes("Warning") || n.message.includes("Security Alert") || n.message.includes("⚠️") || n.message.includes("🔒");
-                const warningClass = isWarning ? " warning" : "";
-                return n.link ? `
-                  <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable${warningClass}">
-                    <div class="notif-text">${formatDescription(n.message)}</div>
-                  </a>
-                ` : `
-                  <div class="notif-item${warningClass}">
-                    <div class="notif-text">${formatDescription(n.message)}</div>
-                  </div>
-                `;
-              }).join("")}
+              ${renderNotificationList()}
             </div>
           </div>
         </div>
@@ -3275,16 +3457,25 @@ function renderDashboard(){
         <div class="contact-support">Facing errors? DM <a href="${CONFIG.CONTACT_URL}" target="_blank" rel="noopener noreferrer">${CONFIG.CONTACT_HANDLE}</a></div>
       </div>
       <div class="dash-user">
-        <button onclick="openEnrollModal()" class="enroll-nav-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><circle cx="12" cy="16" r="1"/></svg>
-          Unlock More
-        </button>
+        ${state.subscriptionActive 
+          ? `<div class="search-box" style="position:relative; display:inline-block; margin: 0 12px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position:absolute; left:12px; top:50%; transform:translateY(-50%);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="courseSearch" placeholder="Search" onkeyup="searchCourses(this.value)" style="margin:0; padding: 8px 16px 8px 34px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--white); font-size:14px; width:180px; outline:none; transition: border-color 0.2s;">
+            </div>`
+          : `<button onclick="openEnrollModal()" class="enroll-nav-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/><circle cx="12" cy="16" r="1"/></svg>
+              Unlock More
+            </button>`
+        }
         ${userHeaderHtml}
       </div>
     </div>
     <div class="dash-hero">
       <div class="eyebrow">Your Courses</div>
-      <p>Locked courses will open automatically once your payment is confirmed.</p>
+      ${state.subscriptionActive 
+        ? `<p>Premium access is active. Explore all courses and assets anytime.</p>`
+        : `<p>Locked courses will open automatically once your payment is confirmed.</p>`
+      }
     </div>
     <div class="course-grid">${cards}</div>
   `;
@@ -3294,13 +3485,7 @@ function logout(){
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("sphotoedit_unlocked_ids");
   }
-  state.email = null;
-  state.unlockedIds = [];
-  state.notifications = [];
-  state.unreadCount = 0;
-  state.current = { courseId:null, courseTitle:"", lectures:[], index:0 };
-  state.screen = "login";
-  renderLogin();
+  window.location.reload();
 }
 
 /* ============================================================================
@@ -3358,15 +3543,7 @@ function renderPlayer(){
                     <button class="notif-clear-btn" onclick="clearNotifBadge(event)">Mark as read</button>
                   </div>
                   <div class="notif-list">
-                    ${state.notifications.map(n => n.link ? `
-                      <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable">
-                        <div class="notif-text">${formatDescription(n.message)}</div>
-                      </a>
-                    ` : `
-                      <div class="notif-item">
-                        <div class="notif-text">${formatDescription(n.message)}</div>
-                      </div>
-                    `).join("")}
+                    ${renderNotificationList()}
                   </div>
                 </div>
               </div>
@@ -3440,15 +3617,7 @@ function renderPlayer(){
                   <button class="notif-clear-btn" onclick="clearNotifBadge(event)">Mark as read</button>
                 </div>
                 <div class="notif-list">
-                  ${state.notifications.map(n => n.link ? `
-                    <a href="${escapeHtml(n.link)}" target="_blank" rel="noopener noreferrer" class="notif-item clickable">
-                      <div class="notif-text">${formatDescription(n.message)}</div>
-                    </a>
-                  ` : `
-                    <div class="notif-item">
-                      <div class="notif-text">${formatDescription(n.message)}</div>
-                    </div>
-                  `).join("")}
+                  ${renderNotificationList()}
                 </div>
               </div>
             </div>
@@ -3531,12 +3700,29 @@ function dismissLogin() {
   renderDashboard();
 }
 
+function searchCourses(query) {
+  const lowerQuery = query.toLowerCase().trim();
+  const cards = document.querySelectorAll(".course-grid .course-card");
+  cards.forEach(card => {
+    const titleEl = card.querySelector(".course-text-wrap h3");
+    if (titleEl) {
+      const title = titleEl.textContent.toLowerCase();
+      if (title.includes(lowerQuery)) {
+        card.style.display = "";
+      } else {
+        card.style.display = "none";
+      }
+    }
+  });
+}
+
 function showLoginOverlay() {
   state.screen = "login";
   renderLogin();
 }
 
 /* expose handlers used via inline on-attributes */
+window.searchCourses = searchCourses;
 window.openCourse = openCourse;
 window.selectLecture = selectLecture;
 window.goPrev = goPrev;
