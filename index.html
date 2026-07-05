@@ -1204,14 +1204,7 @@
     transition:transform .3s cubic-bezier(0.4, 0, 0.2, 1), border-color .3s ease, box-shadow .3s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
-  .course-card::before{
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0; left: 0;
-    width: 3px;
-    background: linear-gradient(180deg, rgba(82,224,255,0.8), transparent 80%);
-    opacity: 0.3;
-  }
+
   .course-card.unlocked{ border-color:rgba(255,255,255,.1); }
   .course-card.unlocked:hover {
     border-color:rgba(255,255,255,.2);
@@ -1223,7 +1216,7 @@
     background:#0D0E12;
   }
   .course-card.locked:hover{ opacity:1; }
-  .course-card.locked::before{ display: none; }
+
 
   .course-emoji-wrap {
     width: 100%;
@@ -1513,6 +1506,294 @@
       width:min(320px, calc(100vw - 32px));
     }
   }
+
+  /* ================= COURSE PREVIEW MODAL ================= */
+  .course-preview-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(5, 7, 14, 0.82);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    opacity: 0;
+    transition: opacity 0.28s ease;
+  }
+  .course-preview-overlay.open {
+    display: flex;
+    opacity: 1;
+  }
+  .course-preview-modal {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: rgba(13, 16, 27, 0.96);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 22px;
+    box-shadow: 0 36px 100px rgba(0,0,0,0.7), 0 0 60px rgba(108,124,255,0.12);
+    overflow: hidden;
+    transform: translateY(28px) scale(0.97);
+    transition: transform 0.30s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .course-preview-overlay.open .course-preview-modal {
+    transform: translateY(0) scale(1);
+  }
+  .course-preview-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 50%;
+    color: var(--white);
+    font-size: 20px;
+    font-weight: 300;
+    cursor: pointer;
+    z-index: 10;
+    line-height: 1;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+  .course-preview-close:hover {
+    background: rgba(255,255,255,0.15);
+    color: var(--cyan);
+  }
+  .course-preview-header {
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .course-preview-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--yellow);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .course-preview-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--yellow);
+  }
+  .course-preview-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.2;
+    padding-right: 40px;
+  }
+  .course-preview-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0;
+  }
+  .course-preview-trailer {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    position: relative;
+  }
+  .course-preview-trailer iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  .course-preview-trailer-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: rgba(255,255,255,0.35);
+    font-size: 13px;
+    background: rgba(255,255,255,0.02);
+  }
+  .course-preview-trailer-placeholder svg {
+    opacity: 0.3;
+  }
+  .course-preview-content-section {
+    padding: 20px 24px 28px;
+  }
+  .course-preview-content-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .course-preview-content-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(82,224,255,0.3), transparent);
+  }
+  .course-preview-lecture-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .course-preview-lecture-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: background 0.18s ease, border-color 0.18s ease;
+  }
+  .course-preview-lecture-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+  }
+  .course-preview-lecture-num {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: rgba(108,124,255,0.18);
+    border: 1px solid rgba(108,124,255,0.28);
+    color: var(--blue);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .course-preview-lecture-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .course-preview-lecture-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .course-preview-lecture-type {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.38);
+    margin-top: 2px;
+  }
+  .course-preview-lecture-type.assignment {
+    color: var(--yellow);
+  }
+  .course-preview-loading {
+    padding: 40px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255,255,255,0.45);
+    font-size: 13px;
+  }
+  .course-preview-spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,0.1);
+    border-top-color: var(--cyan);
+    animation: spin 0.75s linear infinite;
+  }
+  .preview-enroll-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: var(--white);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: 0 4px 16px rgba(108,124,255,0.25);
+  }
+  .preview-enroll-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(108,124,255,0.4);
+  }
+  /* Preview play button on course card */
+  .course-preview-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,230,109,0.12);
+    border: 1.5px solid rgba(255,230,109,0.38);
+    color: var(--yellow);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    font-family: var(--font-ui);
+  }
+  .course-preview-btn:hover {
+    background: rgba(255,230,109,0.22);
+    border-color: rgba(255,230,109,0.75);
+    color: var(--yellow);
+    transform: scale(1.13);
+    box-shadow: 0 0 16px rgba(255,230,109,0.25);
+  }
+  /* When course is already unlocked, button is subtle/muted */
+  .course-preview-btn.is-unlocked {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.35);
+  }
+  .course-preview-btn.is-unlocked:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.6);
+    box-shadow: none;
+    transform: scale(1.08);
+  }
+  .course-preview-btn svg {
+    display: block;
+    flex-shrink: 0;
+  }
+  @media (max-width: 860px) {
+    .course-preview-modal {
+      max-height: 94vh;
+      border-radius: 18px;
+    }
+    .course-preview-title {
+      font-size: 18px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1523,6 +1804,23 @@
   <div class="enroll-modal-content" onclick="event.stopPropagation()">
     <button class="enroll-modal-close" onclick="closeEnrollModal(event)">&times;</button>
     <iframe id="enrollIframe" class="enroll-modal-iframe" src="about:blank"></iframe>
+  </div>
+</div>
+
+<!-- Course Preview Modal -->
+<div id="coursePreviewModal" class="course-preview-overlay" onclick="if(event.target===this)closeCoursePreview()">
+  <div class="course-preview-modal" onclick="event.stopPropagation()">
+    <button class="course-preview-close" id="coursePreviewClose" onclick="closeCoursePreview()">&times;</button>
+    <div class="course-preview-header">
+      <div class="course-preview-eyebrow" id="coursePreviewEyebrow">Course Preview</div>
+      <div class="course-preview-title" id="coursePreviewTitle">Loading…</div>
+    </div>
+    <div class="course-preview-body" id="coursePreviewBody">
+      <div class="course-preview-loading">
+        <div class="course-preview-spinner"></div>
+        <span>Loading course details…</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1554,8 +1852,10 @@ const CONFIG = {
 const state = {
   screen: "login",      // login | verifying | locked | dashboard | player | error
   email: null,
+  activeTab: "courses", // courses | assets
   unlockedIds: [],       // course ids this email can open
   courseList: [],        // resolved course list (from sheet, or CONFIG fallback)
+  assetsList: null,      // resolved assets list
   errorMessage: "",
   notifications: [],     // loaded notifications from sheet
   unreadCount: 0,        // unread notifications count
@@ -2083,7 +2383,11 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
     animation: slideInPanel 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   @keyframes slideInPanel {
-    from { opacity: 0; transform: translateY(16px); }
+    from { transform: translateX(100%); opacity:0.8; }
+    to { transform: translateX(0); opacity:1; }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -2867,6 +3171,195 @@ function detectMobile() {
 </html>
 `;
 
+/* ============================================================================
+   COURSE PREVIEW MODAL
+   ========================================================================= */
+async function openCoursePreview(courseId, event) {
+  if(event) event.stopPropagation();
+
+  // Find out if it's a course or an asset
+  let isAsset = false;
+  let cfg = null;
+  
+  if (state.assetsList) {
+    const asset = state.assetsList.find(a => a.id === courseId);
+    if (asset) {
+      isAsset = true;
+      cfg = asset;
+    }
+  }
+  
+  if (!isAsset) {
+    const list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
+    cfg = list.find(c => c.id === courseId);
+  }
+
+  const overlay = document.getElementById('coursePreviewModal');
+  const titleEl = document.getElementById('coursePreviewTitle');
+  const eyebrowEl = document.getElementById('coursePreviewEyebrow');
+  const bodyEl = document.getElementById('coursePreviewBody');
+  
+  // Clear old content
+  titleEl.textContent = cfg ? cfg.title : courseId;
+  eyebrowEl.innerHTML = '';
+  bodyEl.innerHTML = `<div class="course-preview-loading"><span>Loading...</span></div>`;
+
+  // Open modal with animation
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { overlay.classList.add('open'); });
+  });
+  document.body.style.overflow = 'hidden';
+
+  const isFree = (String(courseId || "").trim().startsWith("#") || String(cfg?.title || "").trim().startsWith("#"));
+  const isUnlocked = isFree || state.subscriptionActive || (!isAsset && state.unlockedIds.includes(normalizeTag(courseId)));
+
+  // Eyebrow badges
+  if (isAsset) {
+    eyebrowEl.innerHTML = isFree
+      ? `Asset Preview &nbsp;<span style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10B981;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">FREE</span>`
+      : (isUnlocked
+         ? `Asset Preview &nbsp;<span style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10B981;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">UNLOCKED</span>`
+         : `Asset Preview &nbsp;<span style="background:rgba(255,230,109,0.15);border:1px solid rgba(255,230,109,0.35);color:var(--yellow);font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">LOCKED</span>`);
+  } else {
+    eyebrowEl.innerHTML = isFree
+      ? `Course Preview &nbsp;<span style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10B981;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">FREE</span>`
+      : (isUnlocked
+         ? `Course Preview &nbsp;<span style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.35);color:#10B981;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">UNLOCKED</span>`
+         : `Course Preview &nbsp;<span style="background:rgba(255,230,109,0.15);border:1px solid rgba(255,230,109,0.35);color:var(--yellow);font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">${cfg?.price || 'LOCKED'}</span>`);
+  }
+
+  if (isAsset) {
+    // Quick render for Asset Preview (no sheet fetching needed)
+    const trailerParsed = cfg.videoUrl ? parseVideoUrl(cfg.videoUrl) : null;
+    const hasTrailer = !!(trailerParsed && trailerParsed.embed);
+    const trailerHtml = hasTrailer
+      ? `<div class="course-preview-trailer">
+           <iframe src="${escapeHtml(trailerParsed.embed)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+         </div>`
+      : '';
+      
+    const actionHtml = isUnlocked
+      ? `<button class="preview-enroll-btn" onclick="closeCoursePreview(); openCourse('${escapeHtml(cfg.id)}')">View Asset</button>`
+      : `<button class="preview-enroll-btn" onclick="closeCoursePreview(); openEnrollModal()">🔓 Buy Once. Get All Assets for 365 Days</button>`;
+      
+    bodyEl.innerHTML = `
+      ${trailerHtml}
+      <div class="course-preview-content-section">
+        <div class="course-preview-content-label">Asset Type &middot; ${escapeHtml(cfg.type)}</div>
+        <div style="color:rgba(255,255,255,0.8); font-size:14px; line-height:1.6; margin-bottom: 24px;">
+          ${escapeHtml(cfg.description)}
+        </div>
+        <div style="text-align:center;">
+          ${actionHtml}
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // Fetch course data (trailer in B1, and all lectures)
+  try {
+    const rows = await fetchSheetRows(sheetTabName(courseId));
+    if (!rows.length) {
+      bodyEl.innerHTML = `<div class="course-preview-loading"><span>No content found for this course yet.</span></div>`;
+      return;
+    }
+
+    // B1 = rows[0][1] = trailer URL
+    const trailerUrl = String(rows[0][1] || '').trim();
+    const trailerParsed = trailerUrl ? parseVideoUrl(trailerUrl) : null;
+    const hasTrailer = !!(trailerParsed && trailerParsed.embed);
+
+    // Data rows: skip row 0 if it's the title/trailer row (col B is blank or URL), skip header row
+    let dataRows = rows;
+    const firstColA = String(rows[0][0] || '').trim().toLowerCase();
+    const isHeaderOrTitle = (firstColA === 'lecture title' || firstColA === 'title' || firstColA === 'lecture' ||
+      (String(rows[0][1] || '').trim() === '' && String(rows[0][0] || '').trim() !== ''));
+    if (isHeaderOrTitle) dataRows = rows.slice(1);
+
+    const lectures = dataRows
+      .filter(r => {
+        const a = String(r[0] || '').trim().toLowerCase();
+        return a !== 'lecture title' && a !== 'title' && a !== 'lecture';
+      })
+      .filter(r => String(r[0] || '').trim() !== '' || String(r[1] || '').trim() !== '')
+      .map((r, i) => ({
+        num: i + 1,
+        title: String(r[0] || '').trim() || 'Untitled',
+        type: String(r[2] || '').trim().toLowerCase().includes('assign') ? 'assignment' : 'lecture'
+      }))
+      .filter(l => l.title !== 'Untitled' || true);
+
+    const trailerHtml = hasTrailer
+      ? `<div class="course-preview-trailer">
+           <iframe src="${escapeHtml(trailerParsed.embed)}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+         </div>`
+      : '';
+
+    // Build lecture list HTML
+      (cfg && (String(cfg.id || '').startsWith('#') || String(cfg.title || '').startsWith('#'))) ||
+      state.unlockedIds.includes(normalizeTag(courseId));
+
+    const lectureListHtml = lectures.length
+      ? lectures.map(l => `
+          <div class="course-preview-lecture-item">
+            <div class="course-preview-lecture-num">${l.num}</div>
+            <div class="course-preview-lecture-info">
+              <div class="course-preview-lecture-title">${escapeHtml(l.title)}</div>
+              <div class="course-preview-lecture-type ${l.type === 'assignment' ? 'assignment' : ''}">${l.type === 'assignment' ? 'Assignment' : 'Lecture'}</div>
+            </div>
+          </div>
+        `).join('')
+      : `<div style="color:rgba(255,255,255,0.38);font-size:13px;text-align:center;padding:20px 0;">No lectures listed yet.</div>`;
+
+    // Pricing + action row
+    const pricingHtml = !isUnlocked && priceDisplay
+      ? `<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:20px;">
+           <div style="font-size:22px;font-weight:800;color:var(--yellow);letter-spacing:-0.5px;">${priceDisplay}</div>
+           <div style="font-size:11px;color:rgba(255,255,255,0.38);font-weight:500;">one-time</div>
+         </div>`
+      : '';
+
+    const actionHtml = isUnlocked
+      ? `<button class="preview-enroll-btn" onclick="closeCoursePreview(); openCourse('${escapeHtml(courseId)}')">&#9654; Start Learning</button>`
+      : `<button class="preview-enroll-btn" onclick="closeCoursePreview(); openEnrollModal('${escapeHtml(courseId)}')">🔓 Unlock This Course</button>`;
+
+    // Update header eyebrow to show price badge if locked
+    eyebrowEl.innerHTML = !isUnlocked && priceDisplay
+      ? `Course Preview &nbsp;<span style="background:rgba(255,230,109,0.15);border:1px solid rgba(255,230,109,0.35);color:var(--yellow);font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px;letter-spacing:0.5px;">${priceDisplay}</span>`
+      : 'Course Preview';
+
+    bodyEl.innerHTML = `
+      ${trailerHtml}
+      <div class="course-preview-content-section">
+        <div class="course-preview-content-label">Course Content &middot; ${lectures.length} Lesson${lectures.length !== 1 ? 's' : ''}</div>
+        <div class="course-preview-lecture-list">${lectureListHtml}</div>
+        <div style="text-align:center;margin-top:20px;">
+          ${actionHtml}
+        </div>
+      </div>
+    `;
+
+  } catch (e) {
+    bodyEl.innerHTML = `<div class="course-preview-loading"><span>Could not load course details. Please try again.</span></div>`;
+  }
+}
+
+function closeCoursePreview() {
+  const overlay = document.getElementById('coursePreviewModal');
+  overlay.classList.remove('open');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    const body = document.getElementById('coursePreviewBody');
+    if (body) body.innerHTML = '';
+  }, 300);
+  document.body.style.overflow = '';
+}
+
+window.openCoursePreview = openCoursePreview;
+window.closeCoursePreview = closeCoursePreview;
+
 function openEnrollModal(courseId) {
   const modal = document.getElementById('enrollModal');
   const iframe = document.getElementById('enrollIframe');
@@ -2930,6 +3423,13 @@ window.addEventListener('message', async (e) => {
          }
       }
       
+      if (!state.assetsList) {
+        try {
+           const list = await fetchAssetsList();
+           state.assetsList = list;
+        } catch(e) {}
+      }
+
       state.screen = "dashboard";
       renderDashboard();
     }
@@ -2940,6 +3440,16 @@ window.addEventListener('message', async (e) => {
 window.addEventListener("click", (e) => {
   if (!e.target.closest(".notif-wrapper")) {
     document.querySelectorAll(".notif-dropdown").forEach(d => d.classList.remove("show"));
+  }
+});
+
+// ESC key closes Course Preview modal
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    const overlay = document.getElementById('coursePreviewModal');
+    if (overlay && overlay.classList.contains('open')) {
+      closeCoursePreview();
+    }
   }
 });
 
@@ -3030,7 +3540,7 @@ async function verifyEmail(email){
 }
 
 async function fetchCourseList(){
-  // Optional "Courses" tab: id | title | description | emoji
+  // Optional "Courses" tab: id | title | description | emoji | price
   // Lets you add new courses to the dashboard without ever editing this file.
   try{
     const rows = await fetchSheetRows("Courses");
@@ -3045,7 +3555,8 @@ async function fetchCourseList(){
         id: String(r[0] || "").trim(),
         title: String(r[1] || "").trim() || String(r[0] || "").trim(),
         description: String(r[2] || "").trim(),
-        emoji: String(r[3] || "").trim() || "📘"
+        emoji: String(r[3] || "").trim() || "📘",
+        price: r[4] ? Number(r[4]) || 0 : 0
       }));
     return list.length ? list : null;
   }catch(e){
@@ -3053,8 +3564,52 @@ async function fetchCourseList(){
   }
 }
 
+async function fetchAssetsList(){
+  try{
+    const rows = await fetchSheetRows("@");
+    if(!rows.length) return null;
+    let dataRows = rows;
+    if(String(rows[0][0] || "").trim().toLowerCase() === "id" || String(rows[0][0] || "").trim().toLowerCase() === "assets" || String(rows[0][1] || "").trim().toLowerCase() === "title"){
+      dataRows = rows.slice(1);
+    }
+    const list = dataRows
+      .filter(r => {
+        const c0 = String(r[0] || "").trim().toLowerCase();
+        const c1 = String(r[1] || "").trim().toLowerCase();
+        if (c0 === "") return false;
+        // Ignore secondary headers that might have been pasted
+        if (c0 === "assets" || c0 === "id" || c1 === "title") return false;
+        return true;
+      })
+      .map(r => ({
+        id: String(r[0] || "").trim(),
+        title: String(r[1] || "").trim() || String(r[0] || "").trim(),
+        videoUrl: String(r[2] || "").trim(),
+        type: String(r[3] || "").trim(),
+        description: String(r[4] || "").trim(),
+        downloadLink: String(r[5] || "").trim(),
+        emoji: String(r[6] || "").trim() || "📦"
+      }));
+    return list.length ? list : null;
+  }catch(e){
+    return null; 
+  }
+}
+
+function switchTab(tabName) {
+  state.activeTab = tabName;
+  if(state.screen === "dashboard") renderDashboard();
+}
+
+/* Strip free (#) / coming-soon (//) markers to get the real sheet tab name.
+   The Courses sheet id column uses these prefixes as flags, but the actual
+   sheet tab holding the lectures is always named WITHOUT them. */
+function sheetTabName(courseId) {
+  return String(courseId || '').replace(/^#+/, '').replace(/^\/\//, '').trim();
+}
+
 async function loadCourse(courseId){
-  const rows = await fetchSheetRows(courseId);
+  const rows = await fetchSheetRows(sheetTabName(courseId));
   if(!rows.length) return { title:null, lectures:[] };
 
   let title = null;
@@ -3357,6 +3912,7 @@ function renderCourseIcon(emoji){
 }
 
 function renderDashboard(){
+  state.screen = "dashboard";
   const app = document.getElementById("app");
   let list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
 
@@ -3367,53 +3923,110 @@ function renderDashboard(){
     return !( (id.startsWith("/") && !id.startsWith("//")) || (title.startsWith("/") && !title.startsWith("//")) );
   });
 
-  // Sort courses so that unlocked (purchased) or free courses come first
-  list.sort((a, b) => {
-    const aIsFree = String(a.id || "").trim().startsWith("#") || String(a.title || "").trim().startsWith("#");
-    const bIsFree = String(b.id || "").trim().startsWith("#") || String(b.title || "").trim().startsWith("#");
-    const aUnlocked = aIsFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(a.id));
-    const bUnlocked = bIsFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(b.id));
-    if (aUnlocked && !bUnlocked) return -1;
-    if (!aUnlocked && bUnlocked) return 1;
-    return 0;
-  });
+  let cards = "";
+  if (state.activeTab === "courses") {
+    let list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
+    list = list.filter(c => {
+      const id = String(c.id || "").trim();
+      const title = String(c.title || "").trim();
+      return !( (id.startsWith("/") && !id.startsWith("//")) || (title.startsWith("/") && !title.startsWith("//")) );
+    });
 
-  const cards = list.map(c => {
-    const isFree = String(c.id || "").trim().startsWith("#") || String(c.title || "").trim().startsWith("#");
-    const isUnlocked = isFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(c.id));
-    const isComingSoon = String(c.id || "").trim().startsWith("//") || String(c.title || "").trim().startsWith("//");
-    
-    let displayTitle = escapeHtml(c.title);
-    if (isComingSoon) {
-      displayTitle = displayTitle.replace(/^\/\//, '');
-    } else if (isFree) {
-      displayTitle = displayTitle.replace(/^#/, '');
+    list.sort((a, b) => {
+      const aIsFree = String(a.id || "").trim().startsWith("#") || String(a.title || "").trim().startsWith("#");
+      const bIsFree = String(b.id || "").trim().startsWith("#") || String(b.title || "").trim().startsWith("#");
+      const aUnlocked = aIsFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(a.id));
+      const bUnlocked = bIsFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(b.id));
+      if (aUnlocked && !bUnlocked) return -1;
+      if (!aUnlocked && bUnlocked) return 1;
+      return 0;
+    });
+
+    cards = list.map(c => {
+      const isFree = String(c.id || "").trim().startsWith("#") || String(c.title || "").trim().startsWith("#");
+      const isUnlocked = isFree || state.subscriptionActive || state.unlockedIds.includes(normalizeTag(c.id));
+      const isComingSoon = String(c.id || "").trim().startsWith("//") || String(c.title || "").trim().startsWith("//");
+      
+      let displayTitle = escapeHtml(c.title);
+      if (isComingSoon) {
+        displayTitle = displayTitle.replace(/^\/\//, '');
+      } else if (isFree) {
+        displayTitle = displayTitle.replace(/^#/, '');
+      }
+      
+      return `
+        <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" onclick="${isComingSoon ? '' : (isUnlocked ? `openCourse('${escapeHtml(c.id)}')` : `openEnrollModal('${escapeHtml(c.id)}')`)}"
+             style="position:relative;">
+          <div class="course-emoji-wrap">
+            <div class="course-emoji">${renderCourseIcon(c.emoji)}</div>
+          </div>
+          <div class="course-text-wrap">
+            <h3>${displayTitle}</h3>
+            <div class="course-line"></div>
+            <p>${escapeHtml(c.description || "")}</p>
+          </div>
+          <div class="status-row">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            ${isFree
+              ? `<span class="pill" style="background:#10B981;color:#fff;">FREE</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
+              : (isUnlocked && !isComingSoon
+                  ? `<span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0; font-weight:600;">Continue Learning →</span>`
+                  : (isComingSoon 
+                      ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
+                      : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span>`
+                    )
+                )}
+            </div>
+            ${!isComingSoon ? `
+            <button class="course-preview-btn ${isUnlocked ? 'is-unlocked' : ''}" onclick="event.stopPropagation(); openCoursePreview('${escapeHtml(c.id)}', event)" aria-label="Preview course">
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><polygon points="4,2 18,10 4,18"/></svg>
+            </button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join("");
+  } else if (state.activeTab === "assets") {
+    let list = state.assetsList || [];
+    if (!list.length) {
+      cards = `<div style="color:var(--muted); padding: 40px; text-align:center; grid-column: 1/-1;">No assets found or loading...</div>`;
+    } else {
+      cards = list.map(a => {
+        const isFree = String(a.id || "").trim().startsWith("#") || String(a.title || "").trim().startsWith("#");
+        const isUnlocked = isFree || state.subscriptionActive;
+        
+        let displayTitle = escapeHtml(a.title);
+        if (isFree) displayTitle = displayTitle.replace(/^#/, '');
+        
+        return `
+          <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" style="position:relative;" onclick="${isUnlocked ? `openCourse('${escapeHtml(a.id)}')` : 'openEnrollModal()'}">
+            <div class="course-emoji-wrap">
+              <div class="course-emoji">${renderCourseIcon(a.emoji)}</div>
+            </div>
+            <div class="course-text-wrap">
+              <h3>${displayTitle}</h3>
+              <div class="course-line"></div>
+              <p style="margin-bottom:8px; font-weight:600; color:var(--cyan); font-size:11px;">${escapeHtml(a.type)}</p>
+              <p>${escapeHtml(a.description || "")}</p>
+            </div>
+            <div class="status-row">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${isFree
+                  ? `<span class="pill" style="background:#10B981;color:#fff;">FREE</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
+                  : (isUnlocked
+                      ? `<span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0; font-weight:600;">Continue Learning →</span>`
+                      : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span>`
+                    )
+              }
+              </div>
+              <button class="course-preview-btn ${isUnlocked ? 'is-unlocked' : ''}" onclick="event.stopPropagation(); openCoursePreview('${escapeHtml(a.id)}')" aria-label="Preview asset">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><polygon points="4,2 18,10 4,18"/></svg>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
-    
-    return `
-      <div class="course-card ${isUnlocked ? "unlocked" : "locked"}" onclick="${isComingSoon ? '' : (isUnlocked ? `openCourse('${escapeHtml(c.id)}')` : `openEnrollModal('${escapeHtml(c.id)}')`)}">
-        <div class="course-emoji-wrap">
-          <div class="course-emoji">${renderCourseIcon(c.emoji)}</div>
-        </div>
-        <div class="course-text-wrap">
-          <h3>${displayTitle}</h3>
-          <div class="course-line"></div>
-          <p>${escapeHtml(c.description || "")}</p>
-        </div>
-        <div class="status-row">
-          ${isFree
-            ? `<span class="pill" style="background:#10B981;color:#fff;">FREE</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
-            : (isUnlocked && !isComingSoon
-                ? `<span class="pill">UNLOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;padding:0;">Continue →</span>`
-                : (isComingSoon 
-                    ? `<span class="pill pill-locked" style="background:rgba(255,255,255,0.1);color:#fff;">⏳ Coming Soon</span>` 
-                    : `<span class="pill pill-locked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-top:-2px;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> LOCKED</span><span class="link-btn" style="text-decoration:none;color:var(--yellow);font-size:12px;opacity:0.6;padding:0;">Continue →</span>`
-                  )
-              )}
-        </div>
-      </div>
-    `;
-  }).join("");
+  }
 
   const userHeaderHtml = state.email ? `
         <!-- Notification Bell Icon -->
@@ -3470,16 +4083,25 @@ function renderDashboard(){
         ${userHeaderHtml}
       </div>
     </div>
-    <div class="dash-hero">
-      <div class="eyebrow">Your Courses</div>
-      ${state.subscriptionActive 
-        ? `<p>Premium access is active. Explore all courses and assets anytime.</p>`
-        : `<p>Locked courses will open automatically once your payment is confirmed.</p>`
-      }
+    <div class="dash-hero" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div class="eyebrow">${state.activeTab === 'assets' ? 'My Assets' : 'My Learning'}</div>
+        ${state.subscriptionActive 
+          ? `<p>Premium access is active. Explore all courses and assets anytime.</p>`
+          : `<p>Locked items will open automatically once your payment is confirmed.</p>`
+        }
+      </div>
+      
+      <!-- TABS TOGGLE -->
+      <div class="dash-tabs" style="display:flex; background:rgba(255,255,255,0.05); padding:4px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); margin-bottom: 20px;">
+        <button onclick="switchTab('courses')" style="background:${state.activeTab==='courses'?'rgba(255,255,255,0.12)':'transparent'}; color:${state.activeTab==='courses'?'#fff':'rgba(255,255,255,0.5)'}; border:none; padding:8px 20px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.2s;">Courses</button>
+        <button onclick="switchTab('assets')" style="background:${state.activeTab==='assets'?'rgba(255,255,255,0.12)':'transparent'}; color:${state.activeTab==='assets'?'#fff':'rgba(255,255,255,0.5)'}; border:none; padding:8px 20px; border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; transition:all 0.2s;">Assets</button>
+      </div>
     </div>
-    <div class="course-grid">${cards}</div>
+    <div class="course-grid" style="animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;">${cards}</div>
   `;
 }
+
 function logout(){
   if(HAS_STORAGE) {
     localStorage.removeItem(STORAGE_KEY);
@@ -3492,7 +4114,30 @@ function logout(){
    RENDER — PLAYER
    ========================================================================= */
 async function openCourse(courseId){
-  renderVerifying("Loading your lectures…");
+  renderVerifying("Loading content…");
+
+  // Check if it's an asset first
+  if (state.assetsList) {
+    const asset = state.assetsList.find(a => a.id === courseId);
+    if (asset) {
+      state.current.courseId = courseId;
+      state.current.courseTitle = asset.title;
+      state.current.lectures = [{
+        title: asset.title,
+        type: "asset",
+        url: asset.videoUrl,
+        embed: parseVideoUrl(asset.videoUrl)?.embed || "",
+        assetsUrl: asset.downloadLink,
+        description: asset.description,
+        assetType: asset.type
+      }];
+      state.current.index = 0;
+      state.screen = "player";
+      renderPlayer();
+      return;
+    }
+  }
+
   try{
     const { title, lectures } = await loadCourse(courseId);
     const list = (state.courseList && state.courseList.length) ? state.courseList : CONFIG.COURSES;
@@ -3568,7 +4213,7 @@ function renderPlayer(){
       <div class="layer-info">
         <div class="layer-title">${escapeHtml(l.title || "Untitled")}</div>
         <div class="layer-meta">
-          <span class="type-tag ${l.type==='assignment' ? 'assignment':''}">${l.type==='assignment' ? 'Assignment' : 'Lecture'}</span>
+          <span class="type-tag ${l.type==='assignment' ? 'assignment':''}">${l.type==='asset' ? 'DOWNLOAD' : (l.type==='assignment' ? 'ASSIGNMENT' : 'LECTURE')}</span>
         </div>
       </div>
     </div>
@@ -3581,9 +4226,9 @@ function renderPlayer(){
     <div class="player-wrap">
       <div class="sidebar" id="sidebar">
         <div class="sidebar-head">
-          <div class="back-link" onclick="renderDashboard()" style="cursor:pointer;">← All courses</div>
+          <div class="back-link" onclick="renderDashboard()" style="cursor:pointer;">← All ${current.type === 'asset' ? 'assets' : 'courses'}</div>
           <h2>${escapeHtml(courseTitle)}</h2>
-          <div class="layers-label">Course Content · ${lectures.length} items</div>
+          <div class="layers-label">${current.type === 'asset' ? 'Asset' : 'Course'} Content · ${lectures.length} items</div>
         </div>
         <div class="layer-list">${listHtml}</div>
       </div>
@@ -3635,13 +4280,15 @@ function renderPlayer(){
           <div class="lecture-heading">
             <div class="meta-row-wrap">
               <div class="meta-row">
-                <span class="type-tag ${current.type==='assignment' ? 'assignment':''}">${current.type==='assignment' ? 'Assignment' : 'Lecture'}</span>
-                <span class="position">${index+1} of ${lectures.length}</span>
+                <span class="type-tag ${current.type==='assignment' ? 'assignment':''}">${current.type==='asset' ? (current.assetType ? escapeHtml(current.assetType).toUpperCase() : 'ASSET') : (current.type==='assignment' ? 'ASSIGNMENT' : 'LECTURE')}</span>
+                ${current.type !== 'asset' ? `<span class="position">${index+1} of ${lectures.length}</span>` : ''}
               </div>
+              ${current.type !== 'asset' ? `
               <div class="nav-buttons">
                 <button class="btn btn-ghost btn-nav" ${index===0 ? "disabled":""} onclick="goPrev()">← Previous</button>
                 <button class="btn btn-nav" ${index===lectures.length-1 ? "disabled":""} onclick="goNext()">Next →</button>
               </div>
+              ` : ''}
             </div>
             <h1>${escapeHtml(current.title || "Untitled")}</h1>
           </div>
@@ -3650,14 +4297,14 @@ function renderPlayer(){
             <div class="lecture-details-card">
               ${current.description ? `
                 <div class="lecture-desc-section">
-                  <h3>About this lecture</h3>
+                  <h3 style="text-transform: uppercase;">About this ${current.type === 'asset' ? 'Asset' : 'Lecture'}</h3>
                   <div class="lecture-desc">${formatDescription(current.description)}</div>
                 </div>
               ` : ''}
               
               ${current.assetsUrl ? `
                 <div class="lecture-assets-section">
-                  <a href="${escapeHtml(current.assetsUrl)}" target="_blank" rel="noopener noreferrer" class="btn-assets">
+                  <a href="${escapeHtml(current.assetsUrl.startsWith('http') ? current.assetsUrl : 'https://' + current.assetsUrl)}" target="_blank" rel="noopener noreferrer" class="btn-assets">
                     <span class="icon">📥</span> Download Assets
                   </a>
                 </div>
@@ -3724,6 +4371,7 @@ function showLoginOverlay() {
 /* expose handlers used via inline on-attributes */
 window.searchCourses = searchCourses;
 window.openCourse = openCourse;
+window.switchTab = switchTab;
 window.selectLecture = selectLecture;
 window.goPrev = goPrev;
 window.goNext = goNext;
@@ -3754,6 +4402,15 @@ window.retryFromError = retryFromError;
       state.courseList = list;
       if (state.screen === "login") {
         renderLogin(); // Refresh preview cards with real sheet data!
+      }
+    }
+  }).catch(() => {});
+
+  fetchAssetsList().then(list => {
+    if (list) {
+      state.assetsList = list;
+      if (state.screen === "dashboard" && state.activeTab === "assets") {
+        renderDashboard();
       }
     }
   }).catch(() => {});
