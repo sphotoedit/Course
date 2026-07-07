@@ -3307,7 +3307,7 @@ async function openCoursePreview(courseId, event) {
   if (typeof gtag === 'function') {
     gtag('event', 'page_view', {
       page_title: 'Preview: ' + courseId,
-      page_location: window.location.href + '?preview=' + encodeURIComponent(courseId)
+      page_location: window.location.origin + window.location.pathname.replace(/\/$/, '') + '/preview/' + encodeURIComponent(courseId)
     });
   }
 
@@ -4321,7 +4321,7 @@ async function openCourse(courseId){
   if (typeof gtag === 'function') {
     gtag('event', 'page_view', {
       page_title: 'Course/Asset: ' + courseId,
-      page_location: window.location.href + '?view=' + encodeURIComponent(courseId)
+      page_location: window.location.origin + window.location.pathname.replace(/\/$/, '') + '/view/' + encodeURIComponent(courseId)
     });
   }
 
