@@ -3304,6 +3304,13 @@ function detectMobile() {
 async function openCoursePreview(courseId, event) {
   if(event) event.stopPropagation();
 
+  if (typeof gtag === 'function') {
+    gtag('event', 'page_view', {
+      page_title: 'Preview: ' + courseId,
+      page_location: window.location.href + '?preview=' + encodeURIComponent(courseId)
+    });
+  }
+
   // Find out if it's a course or an asset
   let isAsset = false;
   let cfg = null;
@@ -4311,6 +4318,13 @@ function logout(){
    RENDER — PLAYER
    ========================================================================= */
 async function openCourse(courseId){
+  if (typeof gtag === 'function') {
+    gtag('event', 'page_view', {
+      page_title: 'Course/Asset: ' + courseId,
+      page_location: window.location.href + '?view=' + encodeURIComponent(courseId)
+    });
+  }
+
   renderVerifying("Loading content…");
 
   // Check if it's an asset first
