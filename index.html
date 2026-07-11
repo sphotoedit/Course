@@ -853,6 +853,10 @@
     height: 100%;
     border: none;
     background: transparent;
+    display: block;
+    /* Crucial for iOS Safari: the iframe itself must be scrollable */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* ================= MODERN GLASS REDESIGN ================= */
@@ -1430,23 +1434,35 @@
     .dash-header{
       width:calc(100% - 24px);
       margin-top:12px;
-      padding:16px;
+      padding:14px 16px;
       border-radius:18px;
-      flex-wrap: nowrap;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
     }
     .brand-mark-wrap {
       flex: 1;
       min-width: 0;
     }
     .dash-user{
-      width: auto;
+      width: 100%;
       gap: 8px;
       flex-shrink: 0;
+      justify-content: flex-end;
     }
-    .dash-user .btn {
-      padding: 8px 12px;
+    /* Hide search bar on mobile — saves space */
+    .search-box {
+      display: none !important;
+    }
+    /* Hide email chip on mobile — shown via bell notif */
+    .dash-user .email-chip {
+      display: none !important;
+    }
+    .dash-user .link-btn {
+      font-size: 12px;
+    }
+    .dash-user .btn, .dash-user .enroll-nav-btn {
+      padding: 7px 12px;
       font-size: 13px;
     }
     .dash-hero{
@@ -1589,6 +1605,12 @@
     aspect-ratio: 16/9;
     background: #000;
     position: relative;
+  }
+  @media (max-width: 600px) {
+    .course-preview-trailer {
+      aspect-ratio: 4/5; /* Taller ratio for mobile to fit vertical videos and prevent Drive player controls overlap */
+      min-height: 300px;
+    }
   }
   .course-preview-trailer iframe {
     width: 100%;
@@ -1882,7 +1904,7 @@
 <div id="enrollModal" class="enroll-modal-overlay" onclick="closeEnrollModal(event)">
   <div class="enroll-modal-content" onclick="event.stopPropagation()">
     <button class="enroll-modal-close" onclick="closeEnrollModal(event)">&times;</button>
-    <iframe id="enrollIframe" class="enroll-modal-iframe" src="about:blank"></iframe>
+    <iframe id="enrollIframe" class="enroll-modal-iframe" src="about:blank" scrolling="yes"></iframe>
   </div>
 </div>
 
@@ -2280,15 +2302,26 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
     --shadow-card: 0 4px 24px rgba(0,0,0,0.25);
     --shadow-glow: 0 0 40px rgba(47, 56, 178, 0.08);
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  html {
+    /* iOS Safari: scroll must be on html or body, not both */
+    overflow: hidden;
+  }
   body{
     font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     background:var(--bg);
     color:var(--white);
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
+    height: 100%;
     overflow-x: hidden;
+    overflow-y: scroll; /* scroll (not auto) works better on iOS */
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
 
   /* Subtle background texture */
@@ -2541,6 +2574,11 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
     border: none;
     transition: all 0.2s ease;
     white-space: nowrap;
+    /* iOS Safari: prevent scroll from eating button taps */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
   }
   .btn-back {
     background: rgba(255, 255, 255, 0.04);
@@ -2761,8 +2799,8 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
     font-family: 'SF Mono', 'Fira Code', monospace;
   }
   .copy-btn {
-    background: var(--blue);
-    border: none;
+    background: rgba(47,56,178,0.5);
+    border: 1px solid rgba(47,56,178,0.6);
     color: var(--white);
     font-family: inherit;
     font-size: 10px;
@@ -2778,7 +2816,7 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
     transition: all 0.15s ease;
   }
   .copy-btn:hover {
-    background: var(--blue-dark);
+    background: var(--blue);
   }
 
   /* ---------- Field Help / Warning ---------- */
@@ -2804,8 +2842,28 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
   /* Premium membership card — Fixed Aspect Ratio Credit Card */
   .premium-card-wrapper{
     width: 100%;
-    aspect-ratio: 1.586 / 1; /* Pure Credit Card Aspect Ratio */
+    aspect-ratio: 1.586 / 1; /* Credit Card ratio on desktop */
     position: relative;
+  }
+  /* ---- MOBILE: Always show full card content ---- */
+  @media (max-width: 600px) {
+    .premium-card-wrapper {
+      aspect-ratio: unset !important;
+      height: auto !important;
+    }
+    .premium-card {
+      position: relative !important;
+      inset: auto !important;
+    }
+    .premium-inner {
+      height: auto !important;
+    }
+    .card-tier {
+      font-size: 20px !important;
+    }
+    .price-hero .amount {
+      font-size: 26px !important;
+    }
   }
   
   .premium-card{
@@ -2890,9 +2948,11 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
   }
 
   .feature-row{
-    display:flex;gap:24px;
+    display:flex;gap:16px;
     padding-top:14px;
+    padding-right: 90px; /* Reserve space for BEST VALUE badge so All Assets is never cut off */
     border-top:1px solid rgba(255,255,255,0.06);
+    flex-wrap: wrap;
   }
   .feature-item{display:flex;align-items:center;gap:8px;}
   .feature-icon{
@@ -3055,7 +3115,7 @@ const BUNDLED_ORDER_HTML = `<!DOCTYPE html>
         
         <a id="mobilePayBtn" href="#" class="mobile-pay-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          Pay via UPI App
+          <span id="mobilePayBtnText">Pay via UPI App</span>
         </a>
 
         <div class="upi-copy-row">
@@ -3280,7 +3340,9 @@ function updateTotal(){
     // Dynamic UPI Deeplink for mobile payment
     const upiLink = "upi://pay?pa=sandeepdarji.in-2@okhdfcbank&pn=Sphotoedit&am=" + total + "&cu=INR";
     const payBtn = document.getElementById('mobilePayBtn');
+    const payBtnText = document.getElementById('mobilePayBtnText');
     if (payBtn) payBtn.href = upiLink;
+    if (payBtnText) payBtnText.textContent = "Pay " + money(total) + " via UPI App";
 
   } else {
     if (step2Next) {
@@ -3534,17 +3596,40 @@ ctaBtn.addEventListener('click', async () => {
 });
 
 function copyUpiId() {
-  const upiText = document.getElementById("upiId").textContent;
-  navigator.clipboard.writeText(upiText).then(() => {
-    const feedback = document.getElementById("copyFeedback");
-    feedback.textContent = "Copied!";
-    setTimeout(() => {
-      feedback.textContent = "Copy UPI ID";
-    }, 2000);
-  }).catch(() => {
-    alert("Could not copy automatically. Please copy: " + upiText);
-  });
+  const upiText = document.getElementById("upiId").textContent.trim();
+  const feedback = document.getElementById("copyFeedback");
+
+  function showCopied() {
+    feedback.textContent = "Copied! ✓";
+    setTimeout(() => { feedback.textContent = "Copy UPI ID"; }, 2500);
+  }
+
+  // Modern clipboard API (HTTPS / localhost)
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(upiText).then(showCopied).catch(() => fallbackCopy());
+  } else {
+    fallbackCopy();
+  }
+
+  // Fallback: works on HTTP and older browsers
+  function fallbackCopy() {
+    const ta = document.createElement("textarea");
+    ta.value = upiText;
+    ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0;";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, 99999); // For mobile
+    try {
+      document.execCommand("copy");
+      showCopied();
+    } catch(e) {
+      alert("Copy manually: " + upiText);
+    }
+    document.body.removeChild(ta);
+  }
 }
+
 
 // Check query param (e.g. ?course=PhotoshopBasics&email=user@example.com) to pre-select course and email
 function checkQueryParam() {
@@ -3575,6 +3660,8 @@ function detectMobile() {
   if (isMobile) {
     const payBtn = document.getElementById('mobilePayBtn');
     if (payBtn) payBtn.style.display = 'inline-flex';
+    const qrText = document.querySelector('.qr-pay-amount');
+    if (qrText) qrText.style.display = 'none';
   }
 }
 
@@ -3885,7 +3972,11 @@ function openEnrollModal(courseId) {
   iframe.removeAttribute('src'); // clear src so srcdoc takes precedence
   iframe.srcdoc = docHTML;
   modal.classList.add('open');
+  // Lock background body scroll (also prevents iOS scroll bleed-through)
   document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.dataset.scrollY = window.scrollY;
 }
 
 
@@ -3957,7 +4048,12 @@ function closeEnrollModal(event) {
   const iframe = document.getElementById('enrollIframe');
   modal.classList.remove('open');
   iframe.removeAttribute('srcdoc'); iframe.src = 'about:blank';
+  // Restore body scroll
+  const scrollY = document.body.dataset.scrollY || 0;
   document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
+  window.scrollTo(0, parseInt(scrollY));
 
   if (typeof state !== 'undefined' && state.paymentJustCompleted) {
     state.paymentJustCompleted = false;
@@ -4366,7 +4462,7 @@ function renderLogin(){
 }
 
 async function handleLoginSubmit(rawEmail){
-  const email = (rawEmail || "").trim();
+  const email = (rawEmail || "").trim().toLowerCase(); // Always lowercase for case-insensitive match
   if(!email || !email.includes("@")){
     const err = document.getElementById("loginError");
     err.textContent = "Enter a valid email address.";
